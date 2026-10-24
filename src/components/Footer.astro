@@ -1,0 +1,32 @@
+---
+import type { Settings } from '../lib/types';
+interface Props {
+  settings: Settings;
+}
+const { settings } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-24 border-t border-line bg-soft/60">
+  <div class="container-wide flex flex-col gap-6 py-10 md:flex-row md:items-start md:justify-between">
+    <div class="max-w-sm">
+      <p class="text-base font-extrabold">
+        <span aria-hidden="true">🍙</span>
+        {settings.title}
+      </p>
+      <p class="mt-2 text-sm leading-relaxed text-ink-3">{settings.tagline}</p>
+    </div>
+    <nav aria-label="사이트 정보">
+      <ul class="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-ink-2">
+        <li><a class="hover:text-accent-ink" href="/about">소개</a></li>
+        <li><a class="hover:text-accent-ink" href="/contact">연락처</a></li>
+        <li><a class="hover:text-accent-ink" href="/privacy">개인정보처리방침</a></li>
+        <li><a class="hover:text-accent-ink" href="/posts">전체 글</a></li>
+        <li><a class="hover:text-accent-ink" href="/rss.xml">RSS</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="container-wide border-t border-line py-5 text-xs text-ink-3">
+    © {year} {settings.authorName}. 모든 글과 사진의 저작권은 작성자에게 있습니다.
+  </div>
+</footer>

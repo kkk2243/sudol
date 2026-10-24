@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import ListHeader from '../../components/ListHeader.astro';
+import PostGrid from '../../components/PostGrid.astro';
+import Pagination from '../../components/Pagination.astro';
+import { paginate, siteData } from '../../lib/site';
+import { setPublicCache } from '../../lib/cache';
+
+const site = await siteData(Astro.locals);
+let tag = '';
+try {
+  tag = decodeURIComponent(Astro.params.tag ?? '').normalize('NFC');
+} catch {
+  return Astro.rewrite('/404');
+}
+const list = site.published.filter((p) => p.tags.includes(tag));
+if (!list.length) return Astro.rewrite('/404');
+setPublicCache(Astro.response.headers, { index: site.index, query: ['page'] });
+
+const pg = paginate(list, Astro.url.searchParams.get('page'));
+if (pg.outOfRange) return Astro.rewrite('/404');
+const basePath = `/tag/${encodeURIComponent(tag)}`;
+const suffix = pg.page > 1 ? ` (${pg.page}페이지)` : '';
+---
+
+<Base
+  site={site}
+  seo={{
+    title: `#${tag}${suffix} | ${site.settings.title}`,
+    description: `'${tag}' 태그가 달린 ${site.settings.authorName}의 글 ${list.length}개`,
+    canonical: pg.page > 1 ? `${basePath}?page=${pg.page}` : basePath,
+  }}
+>
+  <ListHeader eyebrow="TAG" title={`#${tag}`} count={list.length} />
+  <div class="container-wide">
+    <PostGrid posts={pg.items} site={site} headingLevel="h2" />
+    <Pagination page={pg.page} total={pg.total} basePath={basePath} />
+  </div>
+</Base>

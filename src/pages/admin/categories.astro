@@ -1,0 +1,172 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { countTags, getCategories, getIndex } from '../../lib/content';
+
+const [categories, index] = await Promise.all([getCategories(), getIndex()]);
+const postCount = new Map<string, number>();
+for (const p of index) postCount.set(p.category, (postCount.get(p.category) || 0) + 1);
+const tags = countTags(index);
+---
+
+<Admin title="카테고리·태그" active="categories">
+  <h1 class="text-2xl font-extrabold">카테고리·태그 관리</h1>
+
+  <section class="mt-6" aria-labelledby="cat-title">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="cat-title" class="text-lg font-bold">카테고리</h2>
+      <button type="button" class="btn btn-sm" data-add>＋ 카테고리 추가</button>
+    </div>
+    <p class="mt-1 text-sm text-ink-3">순서는 메뉴에 보이는 순서예요. 주소(slug)는 영문 소문자로 /category/주소 에 쓰여요.</p>
+
+    <ul id="cat-list" class="mt-4 space-y-3">
+      {
+        categories.map((c) => (
+          <li class="card cat-row grid gap-3 p-4 sm:grid-cols-[4rem_1fr_1fr] lg:grid-cols-[4rem_10rem_10rem_1fr_auto]" data-orig={c.slug}>
+            <label class="field">
+              <span class="label">이모지</span>
+              <input class="input text-center" name="emoji" value={c.emoji} maxlength="8" />
+            </label>
+            <label class="field">
+              <span class="label">이름</span>
+              <input class="input" name="name" value={c.name} maxlength="20" required />
+            </label>
+            <label class="field">
+              <span class="label">주소(slug)</span>
+              <input class="input" name="slug" value={c.slug} maxlength="40" pattern="[a-z0-9-]+" spellcheck="false" />
+            </label>
+            <label class="field sm:col-span-3 lg:col-span-1">
+              <span class="label">설명</span>
+              <input class="input" name="description" value={c.description} maxlength="120" />
+            </label>
+            <div class="flex items-end gap-1 sm:col-span-3 lg:col-span-1">
+              <button type="button" class="btn btn-sm" data-up aria-label="위로">↑</button>
+              <button type="button" class="btn btn-sm" data-down aria-label="아래로">↓</button>
+              <button type="button" class="btn btn-sm btn-danger" data-remove data-count={postCount.get(c.slug) || 0}>
+                삭제
+              </button>
+              <span class="ml-2 self-center whitespace-nowrap text-xs text-ink-3">글 {postCount.get(c.slug) || 0}개</span>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="mt-4 flex justify-end">
+      <button type="button" class="btn btn-primary" data-save-cats>카테고리 저장</button>
+    </div>
+  </section>
+
+  <section class="mt-12" aria-labelledby="tag-title">
+    <h2 id="tag-title" class="text-lg font-bold">태그 ({tags.length})</h2>
+    <p class="mt-1 text-sm text-ink-3">태그는 글을 쓸 때 자동으로 만들어져요. 여기서 이름을 바꾸거나 모든 글에서 지울 수 있어요.</p>
+    {
+      tags.length === 0 ? (
+        <p class="mt-4 rounded-xl border border-dashed border-line p-6 text-center text-ink-3">아직 태그가 없어요.</p>
+      ) : (
+        <ul class="card mt-4 divide-y divide-line">
+          {tags.map((t) => (
+            <li class="flex items-center gap-3 px-4 py-2.5" data-tag-row={t.name}>
+              <span class="flex-1 font-semibold">#{t.name}</span>
+              <span class="text-sm text-ink-3">글 {t.count}개</span>
+              <button type="button" class="btn btn-sm" data-rename-tag={t.name}>
+                이름 변경
+              </button>
+              <button type="button" class="btn btn-sm btn-danger" data-delete-tag={t.name}>
+                삭제
+              </button>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <template id="cat-template">
+    <li class="card cat-row grid gap-3 p-4 sm:grid-cols-[4rem_1fr_1fr] lg:grid-cols-[4rem_10rem_10rem_1fr_auto]" data-orig="">
+      <label class="field"><span class="label">이모지</span><input class="input text-center" name="emoji" maxlength="8" value="📌" /></label>
+      <label class="field"><span class="label">이름</span><input class="input" name="name" maxlength="20" required /></label>
+      <label class="field"><span class="label">주소(slug)</span><input class="input" name="slug" maxlength="40" spellcheck="false" placeholder="예: cafe" /></label>
+      <label class="field sm:col-span-3 lg:col-span-1"><span class="label">설명</span><input class="input" name="description" maxlength="120" /></label>
+      <div class="flex items-end gap-1 sm:col-span-3 lg:col-span-1">
+        <button type="button" class="btn btn-sm" data-up aria-label="위로">↑</button>
+        <button type="button" class="btn btn-sm" data-down aria-label="아래로">↓</button>
+        <button type="button" class="btn btn-sm btn-danger" data-remove data-count="0">삭제</button>
+        <span class="ml-2 self-center whitespace-nowrap text-xs text-ink-3">새 카테고리</span>
+      </div>
+    </li>
+  </template>
+</Admin>
+
+<script>
+  import { api, confirmDialog, errMsg, toast, withBusy } from '../../admin/client';
+
+  const list = document.getElementById('cat-list')!;
+  const tpl = document.getElementById('cat-template') as HTMLTemplateElement;
+
+  document.querySelector('[data-add]')!.addEventListener('click', () => {
+    const node = tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    list.appendChild(node);
+    node.querySelector<HTMLInputElement>('input[name="name"]')!.focus();
+  });
+
+  list.addEventListener('click', async (e) => {
+    const btn = (e.target as Element).closest('button');
+    if (!btn) return;
+    const row = btn.closest<HTMLElement>('.cat-row')!;
+    if (btn.hasAttribute('data-up') && row.previousElementSibling) row.parentElement!.insertBefore(row, row.previousElementSibling);
+    if (btn.hasAttribute('data-down') && row.nextElementSibling) row.parentElement!.insertBefore(row.nextElementSibling, row);
+    if (btn.hasAttribute('data-remove')) {
+      const n = Number(btn.dataset.count || 0);
+      if (n > 0) return toast(`글이 ${n}개 있는 카테고리는 지울 수 없어요. 글을 먼저 다른 카테고리로 옮겨 주세요.`, true, 5000);
+      if (list.children.length <= 1) return toast('카테고리는 최소 1개가 필요해요.', true);
+      const name = row.querySelector<HTMLInputElement>('input[name="name"]')!.value || '이 카테고리';
+      if (await confirmDialog(`'${name}'를 목록에서 뺄까요? "카테고리 저장"을 눌러야 반영돼요.`, { title: '카테고리 삭제', okLabel: '빼기', danger: true }))
+        row.remove();
+    }
+  });
+
+  document.querySelector<HTMLButtonElement>('[data-save-cats]')!.addEventListener('click', async (e) => {
+    const rows = [...list.querySelectorAll<HTMLElement>('.cat-row')];
+    const val = (r: HTMLElement, n: string) => r.querySelector<HTMLInputElement>(`input[name="${n}"]`)!.value.trim();
+    const categories = rows.map((r) => ({ emoji: val(r, 'emoji'), name: val(r, 'name'), slug: val(r, 'slug').toLowerCase(), description: val(r, 'description') }));
+    const renames = rows.filter((r) => r.dataset.orig && r.dataset.orig !== val(r, 'slug').toLowerCase()).map((r) => ({ from: r.dataset.orig!, to: val(r, 'slug').toLowerCase() }));
+    await withBusy(e.currentTarget as HTMLButtonElement, '저장 중', async () => {
+      try {
+        await api('/api/admin/categories', { method: 'PUT', json: { categories, renames } });
+        location.href = '/admin/categories?msg=' + encodeURIComponent('카테고리를 저장했어요.');
+      } catch (err) {
+        toast(errMsg(err), true, 5000);
+      }
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-rename-tag]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const from = b.dataset.renameTag!;
+      const to = prompt(`'${from}' 태그의 새 이름`, from)?.trim();
+      if (!to || to === from) return;
+      await withBusy(b, '변경 중', async () => {
+        try {
+          const r = await api<{ changed: number }>('/api/admin/tags', { method: 'POST', json: { from, to } });
+          location.href = '/admin/categories?msg=' + encodeURIComponent(`글 ${r.changed}개의 태그를 바꿨어요.`);
+        } catch (err) {
+          toast(errMsg(err), true);
+        }
+      });
+    }),
+  );
+  document.querySelectorAll<HTMLButtonElement>('[data-delete-tag]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const from = b.dataset.deleteTag!;
+      if (!(await confirmDialog(`모든 글에서 '${from}' 태그를 지울까요?`, { title: '태그 삭제', okLabel: '삭제', danger: true }))) return;
+      await withBusy(b, '삭제 중', async () => {
+        try {
+          await api('/api/admin/tags', { method: 'POST', json: { from, to: '' } });
+          document.querySelector(`[data-tag-row="${CSS.escape(from)}"]`)?.remove();
+          toast('태그를 삭제했어요.');
+        } catch (err) {
+          toast(errMsg(err), true);
+        }
+      });
+    }),
+  );
+</script>

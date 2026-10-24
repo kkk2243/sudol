@@ -1,0 +1,138 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { getSettings } from '../../lib/content';
+
+const s = await getSettings();
+---
+
+<Admin title="블로그 설정" active="settings">
+  <h1 class="text-2xl font-extrabold">블로그 설정</h1>
+  <form id="settings-form" class="mt-6 space-y-6" novalidate>
+    <section class="card space-y-4 p-5">
+      <h2 class="text-lg font-bold">기본 정보</h2>
+      <label class="field"><span class="label">블로그 제목</span><input class="input" name="title" value={s.title} maxlength="80" required /></label>
+      <label class="field"><span class="label">한 줄 소개</span><input class="input" name="tagline" value={s.tagline} maxlength="120" /></label>
+      <label class="field">
+        <span class="label">블로그 설명 (검색 결과·소개 박스)</span>
+        <textarea class="textarea" name="description" rows="2" maxlength="300">{s.description}</textarea>
+      </label>
+      <label class="field"><span class="label">작성자 이름</span><input class="input" name="authorName" value={s.authorName} maxlength="30" /></label>
+      <label class="field">
+        <span class="label">연락 이메일</span>
+        <input class="input" type="email" name="contactEmail" value={s.contactEmail} maxlength="120" placeholder="hello@example.com" />
+        <span class="hint">연락처·개인정보처리방침 페이지에 공개돼요. 애드센스 심사 전에 꼭 넣어주세요.</span>
+      </label>
+    </section>
+
+    <section class="card space-y-4 p-5">
+      <h2 class="text-lg font-bold">소개 페이지</h2>
+      <div class="flex items-center gap-4">
+        <div class="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-soft">
+          <img id="profile-img" src={s.profileImage || undefined} alt="" class:list={['h-full w-full object-cover', !s.profileImage && 'hidden']} />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm" data-profile-upload>프로필 사진 올리기</button>
+          <button type="button" class="btn btn-sm btn-danger" data-profile-remove>제거</button>
+        </div>
+        <input type="hidden" name="profileImage" value={s.profileImage} />
+        <input type="file" accept="image/*" class="hidden" id="profile-file" />
+      </div>
+      <label class="field">
+        <span class="label">소개 글 (마크다운)</span>
+        <textarea class="textarea font-mono" name="aboutBody" rows="12" maxlength="20000">{s.aboutBody}</textarea>
+        <span class="hint">/about 페이지에 보여요. 어떤 블로그인지, 협찬 표시 원칙 등을 적어두면 애드센스 심사에 도움이 돼요.</span>
+      </label>
+    </section>
+
+    <section class="card space-y-4 p-5">
+      <h2 class="text-lg font-bold">구글 애드센스</h2>
+      <p class="text-sm text-ink-3">
+        승인 전에는 비워 두세요. 클라이언트 ID를 넣으면 광고 스크립트와 ads.txt가 켜지고, 위치별 슬롯 ID를 넣은 자리에만 광고 영역이 생겨요. (슬롯을 비워두면 애드센스 "자동 광고"만 동작)
+      </p>
+      <label class="field">
+        <span class="label">클라이언트 ID</span>
+        <input class="input" name="adsenseClient" value={s.adsenseClient} placeholder="ca-pub-0000000000000000" spellcheck="false" />
+      </label>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="field"><span class="label">본문 상단 슬롯 ID</span><input class="input" name="slot-top" value={s.adSlots.top} inputmode="numeric" /></label>
+        <label class="field"><span class="label">본문 중간 슬롯 ID</span><input class="input" name="slot-middle" value={s.adSlots.middle} inputmode="numeric" /></label>
+        <label class="field"><span class="label">본문 하단 슬롯 ID</span><input class="input" name="slot-bottom" value={s.adSlots.bottom} inputmode="numeric" /></label>
+        <label class="field"><span class="label">사이드바 슬롯 ID (넓은 화면)</span><input class="input" name="slot-sidebar" value={s.adSlots.sidebar} inputmode="numeric" /></label>
+      </div>
+      <label class="field">
+        <span class="label">ads.txt 내용</span>
+        <textarea class="textarea font-mono text-sm" name="adsTxt" rows="3" placeholder="비워두면 클라이언트 ID로 자동 생성: google.com, pub-..., DIRECT, f08c47fec0942fa0">{s.adsTxt}</textarea>
+        <span class="hint"><a class="underline" href="/ads.txt" target="_blank" rel="noopener">/ads.txt 확인 ↗</a></span>
+      </label>
+    </section>
+
+    <div class="save-bar -mx-4 flex justify-end md:-mx-6">
+      <button type="submit" class="btn btn-primary">설정 저장</button>
+    </div>
+  </form>
+</Admin>
+
+<script>
+  import { api, errMsg, toast, withBusy } from '../../admin/client';
+  import { processAndUpload } from '../../admin/image';
+
+  const form = document.getElementById('settings-form') as HTMLFormElement;
+  const img = document.getElementById('profile-img') as HTMLImageElement;
+  const hidden = form.elements.namedItem('profileImage') as HTMLInputElement;
+  let dirty = false;
+  form.addEventListener('input', () => (dirty = true));
+  window.addEventListener('beforeunload', (e) => {
+    if (dirty) e.preventDefault();
+  });
+
+  document.querySelector('[data-profile-upload]')!.addEventListener('click', () => document.getElementById('profile-file')!.click());
+  document.getElementById('profile-file')!.addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    await withBusy(document.querySelector('[data-profile-upload]'), '올리는 중', async () => {
+      try {
+        const r = await processAndUpload(file);
+        hidden.value = r.url;
+        img.src = r.url;
+        img.classList.remove('hidden');
+        dirty = true;
+        toast('사진을 올렸어요. "설정 저장"을 눌러 반영하세요.');
+      } catch (err) {
+        toast(errMsg(err), true);
+      }
+    });
+  });
+  document.querySelector('[data-profile-remove]')!.addEventListener('click', () => {
+    hidden.value = '';
+    img.classList.add('hidden');
+    dirty = true;
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = (n: string) => ((form.elements.namedItem(n) as HTMLInputElement | null)?.value ?? '').trim();
+    const payload = {
+      title: v('title'),
+      tagline: v('tagline'),
+      description: v('description'),
+      authorName: v('authorName'),
+      contactEmail: v('contactEmail'),
+      profileImage: v('profileImage'),
+      aboutBody: (form.elements.namedItem('aboutBody') as HTMLTextAreaElement).value,
+      adsenseClient: v('adsenseClient'),
+      adSlots: { top: v('slot-top'), middle: v('slot-middle'), bottom: v('slot-bottom'), sidebar: v('slot-sidebar') },
+      adsTxt: v('adsTxt'),
+    };
+    await withBusy(form.querySelector('button[type="submit"]'), '저장 중', async () => {
+      try {
+        await api('/api/admin/settings', { method: 'PUT', json: payload });
+        dirty = false;
+        toast('설정을 저장했어요. 블로그에 바로 반영돼요.');
+      } catch (err) {
+        toast(errMsg(err), true, 5000);
+      }
+    });
+  });
+</script>

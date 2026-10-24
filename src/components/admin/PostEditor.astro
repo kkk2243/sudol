@@ -1,0 +1,220 @@
+---
+import type { Category, Post } from '../../lib/types';
+import { toKstInput } from '../../lib/util';
+
+interface Props {
+  post: Post | null;
+  categories: Category[];
+  allTags: string[];
+}
+const { post, categories, allTags } = Astro.props;
+const isNew = !post;
+const data = JSON.stringify({
+  post,
+  categories: categories.map((c) => c.slug),
+}).replace(/</g, '\\u003c');
+const place = post?.place ?? {};
+const placeOpen = !!post?.place || (post ? ['food', 'travel'].includes(post.category) : false);
+---
+
+<form id="post-form" class="pb-4" novalidate autocomplete="off">
+  <script type="application/json" id="post-data" set:html={data} />
+
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <a href="/admin" class="text-sm font-semibold text-ink-3 hover:text-ink">← 글 목록</a>
+    <span id="save-state" class="text-sm text-ink-3" role="status" aria-live="polite">{isNew ? '새 글' : '저장됨'}</span>
+    {post?.sample && <span class="badge-sample">샘플</span>}
+    {
+      post && (
+        <span class="ml-auto text-sm text-ink-3">
+          {post.status === 'published' ? (
+            <a class="font-semibold text-accent-ink hover:underline" href={`/post/${post.slug}`} target="_blank" rel="noopener" data-view-link>
+              공개 글 보기 ↗
+            </a>
+          ) : (
+            '아직 공개되지 않은 글'
+          )}
+        </span>
+      )
+    }
+  </div>
+
+  <div id="restore-banner" class="card mb-4 hidden items-center gap-3 border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100" role="alert">
+    <p class="flex-1">이 기기에 저장되지 않은 작성 내용이 남아 있어요. 불러올까요?</p>
+    <button type="button" class="btn btn-sm" data-restore>불러오기</button>
+    <button type="button" class="btn btn-sm" data-discard>버리기</button>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <!-- 본문 영역 -->
+    <div class="min-w-0 space-y-4">
+      <label class="block">
+        <span class="sr-only">제목</span>
+        <input
+          id="f-title"
+          name="title"
+          class="w-full border-0 border-b border-line bg-transparent px-1 py-3 text-2xl font-extrabold outline-none placeholder:text-ink-3 focus:border-accent md:text-3xl"
+          placeholder="제목을 입력하세요"
+          maxlength="150"
+          value={post?.title ?? ''}
+          required
+        />
+      </label>
+
+      <div class="card overflow-hidden">
+        <div class="flex items-center gap-1 border-b border-line px-2 py-1.5 lg:hidden" role="tablist" aria-label="편집 화면 전환">
+          <button type="button" class="tab-btn btn-sm rounded-lg px-3 py-1.5 text-sm font-bold" role="tab" aria-selected="true" data-tab="write">작성</button>
+          <button type="button" class="tab-btn btn-sm rounded-lg px-3 py-1.5 text-sm font-bold" role="tab" aria-selected="false" data-tab="preview">미리보기</button>
+        </div>
+
+        <div class="editor-split grid lg:grid-cols-2" data-tab="write" id="editor-split">
+          <div class="write-col min-w-0 lg:border-r lg:border-line">
+            <div class="md-toolbar" role="toolbar" aria-label="서식">
+              <button type="button" data-md="h2" title="제목 (##)" aria-label="큰 제목">H2</button>
+              <button type="button" data-md="h3" title="소제목 (###)" aria-label="소제목">H3</button>
+              <button type="button" data-md="bold" title="굵게 (Ctrl+B)" aria-label="굵게"><b>B</b></button>
+              <button type="button" data-md="italic" title="기울임 (Ctrl+I)" aria-label="기울임"><i>I</i></button>
+              <button type="button" data-md="ul" title="글머리 목록" aria-label="글머리 목록">• 목록</button>
+              <button type="button" data-md="ol" title="번호 목록" aria-label="번호 목록">1. 목록</button>
+              <button type="button" data-md="quote" title="인용" aria-label="인용">❝ 인용</button>
+              <button type="button" data-md="link" title="링크 (Ctrl+K)" aria-label="링크">🔗 링크</button>
+              <button type="button" data-md="hr" title="구분선" aria-label="구분선">― 구분선</button>
+              <button type="button" data-md="image" title="사진 넣기" aria-label="사진 넣기">📷 사진</button>
+              <button type="button" data-md="youtube" title="유튜브 영상" aria-label="유튜브 영상 넣기">▶ 유튜브</button>
+            </div>
+            <label for="f-body" class="sr-only">본문 (마크다운)</label>
+            <textarea
+              id="f-body"
+              name="body"
+              class="textarea md-editor"
+              placeholder={'본문을 마크다운으로 작성하세요.\n\n사진은 이 칸에 끌어다 놓거나, 붙여넣거나, 📷 버튼으로 올릴 수 있어요.\n유튜브 주소를 한 줄에 단독으로 붙여넣으면 영상이 들어가요.'}
+              spellcheck="false">{post?.body ?? ''}</textarea
+            >
+            <div id="upload-status" class="hidden border-t border-line px-4 py-2 text-sm text-ink-2" role="status" aria-live="polite"></div>
+          </div>
+          <div class="preview-col min-w-0 bg-bg">
+            <p class="hidden border-b border-line px-4 py-2.5 text-xs font-bold text-ink-3 lg:block">미리보기</p>
+            <div id="preview" class="preview-pane prose" aria-live="off"></div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="file-body" accept="image/*" multiple class="hidden" />
+    </div>
+
+    <!-- 설정 영역 -->
+    <aside class="space-y-4" aria-label="글 설정">
+      <section class="card space-y-4 p-4">
+        <h2 class="font-bold">발행</h2>
+        <label class="field">
+          <span class="label">발행일 (한국 시간)</span>
+          <div class="flex gap-2">
+            <input id="f-date" type="datetime-local" class="input" value={post ? toKstInput(post.publishedAt) : ''} />
+            <button type="button" class="btn btn-sm shrink-0" data-now>지금</button>
+          </div>
+          <span class="hint" id="date-hint">비워두면 저장하는 순간으로 정해져요. 미래 시각이면 그때 자동 공개돼요.</span>
+        </label>
+        <label class="field">
+          <span class="label">카테고리</span>
+          <select id="f-category" class="select">
+            {categories.map((c) => <option value={c.slug} selected={post?.category === c.slug}>{c.emoji} {c.name}</option>)}
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">태그</span>
+          <input id="f-tags" class="input" list="tag-list" placeholder="쉼표로 구분: 칼국수, 혼밥" value={post?.tags.join(', ') ?? ''} />
+          <datalist id="tag-list">{allTags.map((t) => <option value={t} />)}</datalist>
+          <span class="hint">최대 15개</span>
+        </label>
+        <label class="field">
+          <span class="label">주소(슬러그)</span>
+          <input id="f-slug" class="input" value={post?.slug ?? ''} placeholder="제목에서 자동 생성" spellcheck="false" />
+          <span class="hint break-all" id="slug-hint">/post/{post?.slug ?? '…'}</span>
+        </label>
+      </section>
+
+      <section class="card space-y-3 p-4">
+        <h2 class="font-bold">대표 이미지</h2>
+        <div id="cover-box" class="relative aspect-[3/2] overflow-hidden rounded-xl bg-soft">
+          <img id="cover-img" alt="" class="hidden h-full w-full object-cover" />
+          <p id="cover-empty" class="flex h-full items-center justify-center px-4 text-center text-sm text-ink-3">대표 이미지가 없어요.<br />목록과 SNS 공유에 크게 보여요.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm" data-cover-upload>📷 올리기</button>
+          <button type="button" class="btn btn-sm" data-cover-first>본문 첫 사진 사용</button>
+          <button type="button" class="btn btn-sm btn-danger" data-cover-remove>제거</button>
+        </div>
+        <input type="file" id="file-cover" accept="image/*" class="hidden" />
+        <label class="field">
+          <span class="label">대표 이미지 설명(alt)</span>
+          <input id="f-cover-alt" class="input" maxlength="200" placeholder="예: 바지락 칼국수 한 그릇" value={post?.cover?.alt ?? ''} />
+          <span class="hint">눈이 불편한 방문자와 검색엔진을 위해 사진을 한 문장으로 설명해 주세요.</span>
+        </label>
+      </section>
+
+      <section class="card space-y-3 p-4">
+        <label class="field">
+          <span class="label">요약 (검색 결과 설명)</span>
+          <textarea id="f-excerpt" class="textarea" rows="3" maxlength="300" placeholder="비워두면 본문 앞부분으로 자동 작성">{post?.excerpt ?? ''}</textarea>
+          <span class="hint"><span id="excerpt-count">0</span>자 · 80~160자를 추천해요</span>
+        </label>
+      </section>
+
+      <details class="card group p-4" open={placeOpen} id="place-box">
+        <summary class="flex cursor-pointer list-none items-center justify-between font-bold">
+          📍 장소 정보 (맛집·여행)
+          <span class="text-ink-3 transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+        </summary>
+        <div class="mt-4 space-y-3">
+          <label class="field"><span class="label">장소명</span><input id="p-name" class="input" maxlength="80" value={place.name ?? ''} /></label>
+          <label class="field"><span class="label">지역</span><input id="p-region" class="input" maxlength="40" placeholder="예: 서울 성수동" value={place.region ?? ''} /></label>
+          <label class="field"><span class="label">주소</span><input id="p-address" class="input" maxlength="200" value={place.address ?? ''} /></label>
+          <label class="field">
+            <span class="label">지도 링크</span>
+            <input id="p-map" class="input" type="url" inputmode="url" placeholder="네이버/카카오/구글 지도 공유 주소" value={place.mapUrl ?? ''} />
+          </label>
+          <fieldset class="field">
+            <legend class="label">별점</legend>
+            <div class="flex flex-wrap gap-1" id="p-rating">
+              {
+                [0, 1, 2, 3, 4, 5].map((n) => (
+                  <label class="cursor-pointer">
+                    <input type="radio" name="rating" value={n} class="peer sr-only" checked={(place.rating ?? 0) === n} />
+                    <span class="btn btn-sm peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:text-accent-ink peer-focus-visible:outline-2">
+                      {n === 0 ? '없음' : '★'.repeat(n)}
+                    </span>
+                  </label>
+                ))
+              }
+            </div>
+          </fieldset>
+          <label class="field"><span class="label">가격대</span><input id="p-price" class="input" maxlength="60" placeholder="예: 1인 1~2만원" value={place.priceRange ?? ''} /></label>
+          <label class="field"><span class="label">방문일</span><input id="p-visited" type="date" class="input" value={place.visitedAt ?? ''} /></label>
+        </div>
+      </details>
+
+      {
+        post && (
+          <section class="card p-4">
+            <button type="button" class="btn btn-danger w-full" data-delete-post>
+              🗑️ 이 글 삭제
+            </button>
+          </section>
+        )
+      }
+    </aside>
+  </div>
+
+  <div class="save-bar -mx-4 mt-6 flex items-center gap-2 md:-mx-6">
+    <span class="hidden text-xs text-ink-3 sm:inline">Ctrl+S 로 저장</span>
+    <div class="ml-auto flex gap-2">
+      <button type="button" class="btn" data-save="draft">임시저장</button>
+      <button type="button" class="btn btn-primary" data-save="published" id="publish-btn">
+        {post?.status === 'published' ? '업데이트' : '발행하기'}
+      </button>
+    </div>
+  </div>
+</form>
+
+<script>
+  import '../../admin/editor';
+</script>

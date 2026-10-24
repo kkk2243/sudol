@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import { siteData } from '../lib/site';
+import { setPublicCache } from '../lib/cache';
+
+const site = await siteData(Astro.locals);
+Astro.response.status = 404;
+// 없는 주소는 짧게만 캐시(봇이 무작위 주소를 두드려도 함수 호출이 폭증하지 않도록)
+setPublicCache(Astro.response.headers, { index: site.index, maxSeconds: 3600 });
+const recent = site.published.slice(0, 3);
+---
+
+<Base site={site} seo={{ title: `페이지를 찾을 수 없어요 | ${site.settings.title}`, description: '요청하신 페이지가 없거나 주소가 바뀌었어요.', noindex: true }}>
+  <div class="container-wide pt-16 text-center md:pt-24">
+    <p class="text-6xl" aria-hidden="true">🥢</p>
+    <p class="mt-6 text-sm font-bold text-accent-ink">404</p>
+    <h1 class="mt-2 text-3xl font-extrabold tracking-tight">앗, 그 페이지는 없어요</h1>
+    <p class="mx-auto mt-3 max-w-md text-ink-2">주소가 바뀌었거나 삭제된 글일 수 있어요. 검색하거나 최근 글을 둘러보세요.</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-2">
+      <a href="/" class="btn btn-primary">홈으로</a>
+      <a href="/search" class="btn">검색하기</a>
+    </div>
+  </div>
+  {
+    recent.length > 0 && (
+      <section aria-labelledby="recent-404" class="container-wide mt-20">
+        <h2 id="recent-404" class="mb-6 border-b border-line pb-3 text-xl font-extrabold">
+          최근 글
+        </h2>
+        <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {recent.map((p) => (
+            <PostCard post={p} category={site.categoryMap.get(p.category)} />
+          ))}
+        </div>
+      </section>
+    )
+  }
+</Base>

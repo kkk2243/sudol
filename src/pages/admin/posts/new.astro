@@ -1,0 +1,13 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import PostEditor from '../../../components/admin/PostEditor.astro';
+import { countTags, getCategories, getIndex } from '../../../lib/content';
+
+const [categories, index] = await Promise.all([getCategories(), getIndex()]);
+const allTags = countTags(index).map((t) => t.name);
+---
+
+<Admin title="새 글 쓰기" active="new" wide>
+  <h1 class="sr-only">새 글 쓰기</h1>
+  <PostEditor post={null} categories={categories} allTags={allTags} />
+</Admin>

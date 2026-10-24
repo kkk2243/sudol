@@ -1,0 +1,57 @@
+---
+import '../styles/global.css';
+import Seo, { type SeoProps } from '../components/Seo.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import type { SiteData } from '../lib/site';
+import { siteUrl } from '../lib/env';
+
+interface Props {
+  site: SiteData;
+  seo: Omit<SeoProps, 'siteName'>;
+  activeCategory?: string;
+}
+const { site, seo, activeCategory } = Astro.props;
+const { settings } = site;
+const adsenseOn = /^ca-pub-\d{10,20}$/.test(settings.adsenseClient);
+const base = siteUrl(Astro.url);
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#fffcf8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={settings.title} href={`${base}/rss.xml`} />
+    <Seo {...seo} siteName={settings.title} />
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var d = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (d) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+    {
+      adsenseOn && (
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${settings.adsenseClient}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
+  </head>
+  <body class="min-h-dvh flex flex-col">
+    <a href="#main" class="skip-link">본문으로 건너뛰기</a>
+    <Header settings={settings} categories={site.categories} active={activeCategory} />
+    <main id="main" class="flex-1">
+      <slot />
+    </main>
+    <Footer settings={settings} />
+  </body>
+</html>

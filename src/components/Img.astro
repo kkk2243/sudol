@@ -1,0 +1,27 @@
+---
+import { imgAttrs } from '../lib/media';
+
+interface Props {
+  src: string;
+  alt: string;
+  sizes?: string;
+  /** 첫 화면(LCP) 이미지면 true → eager + 높은 우선순위 */
+  priority?: boolean;
+  class?: string;
+}
+const { src, alt, sizes = '(min-width: 768px) 50vw, 100vw', priority = false, class: cls } = Astro.props;
+const a = imgAttrs(src, sizes);
+---
+
+<img
+  src={a.src}
+  alt={alt}
+  width={a.width}
+  height={a.height}
+  srcset={a.srcset}
+  sizes={a.srcset ? a.sizes : undefined}
+  loading={priority ? 'eager' : 'lazy'}
+  fetchpriority={priority ? 'high' : undefined}
+  decoding={priority ? 'sync' : 'async'}
+  class={cls}
+/>

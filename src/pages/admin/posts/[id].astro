@@ -1,0 +1,15 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import PostEditor from '../../../components/admin/PostEditor.astro';
+import { countTags, getCategories, getIndex, getPost } from '../../../lib/content';
+
+const post = await getPost(Astro.params.id ?? '');
+if (!post) return Astro.redirect('/admin?msg=' + encodeURIComponent('글을 찾을 수 없어요. 이미 삭제되었을 수 있어요.'));
+const [categories, index] = await Promise.all([getCategories(), getIndex()]);
+const allTags = countTags(index).map((t) => t.name);
+---
+
+<Admin title={`수정: ${post.title}`} active="posts" wide>
+  <h1 class="sr-only">글 수정</h1>
+  <PostEditor post={post} categories={categories} allTags={allTags} />
+</Admin>

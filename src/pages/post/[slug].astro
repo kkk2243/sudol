@@ -1,0 +1,262 @@
+---
+import Base from '../../layouts/Base.astro';
+import Img from '../../components/Img.astro';
+import PlaceCard from '../../components/PlaceCard.astro';
+import Toc from '../../components/Toc.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import PostCard from '../../components/PostCard.astro';
+import AuthorBox from '../../components/AuthorBox.astro';
+import { siteData } from '../../lib/site';
+import { setPublicCache } from '../../lib/cache';
+import { getPost, prevNext, relatedPosts } from '../../lib/content';
+import { renderMarkdownServer } from '../../lib/markdown/server';
+import { siteUrl } from '../../lib/env';
+import { formatDateKo } from '../../lib/util';
+
+const site = await siteData(Astro.locals);
+const slug = (Astro.params.slug ?? '').normalize('NFC');
+const summary = site.published.find((p) => p.slug === slug);
+if (!summary) return Astro.rewrite('/404');
+const post = await getPost(summary.id);
+if (!post) return Astro.rewrite('/404');
+setPublicCache(Astro.response.headers, { index: site.index });
+
+const { settings, categoryMap, published } = site;
+const cat = categoryMap.get(post.category);
+const rendered = renderMarkdownServer(post.body);
+const showToc = rendered.toc.length >= 3;
+const { prev, next } = prevNext(published, summary);
+const related = relatedPosts(published, summary, 3);
+const base = siteUrl(Astro.url);
+const url = `${base}/post/${encodeURIComponent(post.slug)}`;
+const hasPlace = !!(post.place && (post.place.name || post.place.address || post.place.mapUrl || post.place.rating));
+const updated = post.updatedAt && new Date(post.updatedAt).getTime() - new Date(post.publishedAt).getTime() > 86400000;
+
+const abs = (u: string) => (/^https?:/.test(u) ? u : base + u);
+const jsonLd: Record<string, unknown>[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title.slice(0, 110),
+    description: post.excerpt,
+    image: post.cover?.src && !post.cover.src.endsWith('.svg') ? [abs(post.cover.src)] : undefined,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt || post.publishedAt,
+    author: { '@type': 'Person', name: settings.authorName, url: `${base}/about` },
+    publisher: { '@type': 'Person', name: settings.authorName, url: base },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    inLanguage: 'ko-KR',
+    articleSection: cat?.name,
+    keywords: post.tags.join(', ') || undefined,
+    wordCount: post.body.length,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '홈', item: base + '/' },
+      ...(cat ? [{ '@type': 'ListItem', position: 2, name: cat.name, item: `${base}/category/${cat.slug}` }] : []),
+      { '@type': 'ListItem', position: cat ? 3 : 2, name: post.title, item: url },
+    ],
+  },
+];
+---
+
+<Base
+  site={site}
+  activeCategory={post.category}
+  seo={{
+    title: `${post.title} | ${settings.title}`,
+    description: post.excerpt,
+    canonical: `/post/${encodeURIComponent(post.slug)}`,
+    image: post.cover?.src,
+    imageAlt: post.cover?.alt,
+    type: 'article',
+    publishedTime: post.publishedAt,
+    modifiedTime: post.updatedAt,
+    jsonLd,
+  }}
+>
+  <article>
+    <header class="mx-auto max-w-[760px] px-5 pt-10 text-center md:pt-16">
+      <nav aria-label="현재 위치" class="text-sm font-semibold">
+        {
+          cat ? (
+            <a href={`/category/${cat.slug}`} class="text-accent-ink hover:underline underline-offset-4">
+              {cat.emoji} {cat.name}
+            </a>
+          ) : (
+            <a href="/posts" class="text-accent-ink">
+              전체 글
+            </a>
+          )
+        }
+        {post.sample && <span class="badge-sample ml-2">샘플</span>}
+      </nav>
+      <h1 class="mt-4 text-[1.875rem] font-extrabold leading-[1.3] tracking-tight md:text-[2.625rem]">{post.title}</h1>
+      <p class="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-ink-3">
+        <span class="font-semibold text-ink-2">{settings.authorName}</span>
+        <span aria-hidden="true">·</span>
+        <time datetime={post.publishedAt}>{formatDateKo(post.publishedAt)}</time>
+        <span aria-hidden="true">·</span>
+        <span>{summary.readingMinutes}분 읽기</span>
+        {
+          updated && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                수정 <time datetime={post.updatedAt}>{formatDateKo(post.updatedAt)}</time>
+              </span>
+            </>
+          )
+        }
+      </p>
+    </header>
+
+    {
+      post.cover?.src && (
+        <figure class="mx-auto mt-8 max-w-[1040px] md:mt-12 md:px-8">
+          <Img
+            src={post.cover.src}
+            alt={post.cover.alt || ''}
+            priority
+            sizes="(min-width: 1040px) 976px, 100vw"
+            class="aspect-[16/10] w-full bg-soft object-cover md:rounded-3xl"
+          />
+        </figure>
+      )
+    }
+
+    <div class="mx-auto mt-10 grid max-w-[1040px] grid-cols-1 gap-12 px-5 md:px-8 xl:max-w-[1100px] xl:grid-cols-[minmax(0,680px)_300px] xl:justify-center">
+      <div class="mx-auto w-full max-w-[680px] min-w-0">
+        {showToc && <Toc toc={rendered.toc} variant="inline" />}
+        <AdSlot settings={settings} position="top" />
+
+        <div class="prose" set:html={rendered.parts[0]} />
+        {
+          rendered.parts[1] && (
+            <>
+              <AdSlot settings={settings} position="middle" />
+              <div class="prose mt-[1.4em]" set:html={rendered.parts[1]} />
+            </>
+          )
+        }
+
+        {hasPlace && <PlaceCard place={post.place!} />}
+
+        {
+          post.tags.length > 0 && (
+            <ul class="mt-10 flex flex-wrap gap-2" aria-label="태그">
+              {post.tags.map((t) => (
+                <li>
+                  <a href={`/tag/${encodeURIComponent(t)}`} class="chip hover:bg-accent-soft hover:text-accent-ink">
+                    #{t}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        <div class="mt-8 flex flex-wrap items-center gap-2 border-t border-line pt-6">
+          <button type="button" class="btn btn-sm" data-copy-link={url}>
+            🔗 <span data-label>링크 복사</span>
+          </button>
+          <span class="sr-only" role="status" aria-live="polite" data-copy-status></span>
+        </div>
+
+        <AdSlot settings={settings} position="bottom" />
+
+        <div class="mt-10">
+          <AuthorBox settings={settings} compact />
+        </div>
+
+        {
+          (prev || next) && (
+            <nav aria-label="이전 글, 다음 글" class="mt-10 grid gap-3 sm:grid-cols-2">
+              {prev ? (
+                <a href={`/post/${prev.slug}`} class="rounded-2xl border border-line p-4 hover:bg-soft">
+                  <span class="text-xs font-semibold text-ink-3">← 이전 글</span>
+                  <span class="line-clamp-2 mt-1 block font-semibold">{prev.title}</span>
+                </a>
+              ) : (
+                <span />
+              )}
+              {next && (
+                <a href={`/post/${next.slug}`} class="rounded-2xl border border-line p-4 text-right hover:bg-soft">
+                  <span class="text-xs font-semibold text-ink-3">다음 글 →</span>
+                  <span class="line-clamp-2 mt-1 block font-semibold">{next.title}</span>
+                </a>
+              )}
+            </nav>
+          )
+        }
+      </div>
+
+      <aside class="hidden xl:block" aria-label="사이드바">
+        <div class="sticky top-24 space-y-8">
+          {showToc && <Toc toc={rendered.toc} variant="sidebar" />}
+          <AdSlot settings={settings} position="sidebar" />
+        </div>
+      </aside>
+    </div>
+  </article>
+
+  {
+    related.length > 0 && (
+      <section aria-labelledby="related-title" class="container-wide mt-20">
+        <h2 id="related-title" class="mb-6 border-b border-line pb-3 text-xl font-extrabold">
+          이런 글은 어때요?
+        </h2>
+        <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {related.map((p) => (
+            <PostCard post={p} category={categoryMap.get(p.category)} />
+          ))}
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<script>
+  // 링크 복사
+  for (const b of document.querySelectorAll<HTMLButtonElement>('[data-copy-link]')) {
+    b.addEventListener('click', async () => {
+      const url = b.dataset.copyLink!;
+      const label = b.querySelector('[data-label]')!;
+      const status = document.querySelector('[data-copy-status]');
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        ok = true;
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        ta.remove();
+      }
+      label.textContent = ok ? '복사했어요!' : '복사 실패';
+      if (status) status.textContent = ok ? '링크를 복사했습니다.' : '링크를 복사하지 못했습니다.';
+      setTimeout(() => (label.textContent = '링크 복사'), 2000);
+    });
+  }
+  // 유튜브: 클릭했을 때만 iframe 로드(첫 화면 속도 보호)
+  document.addEventListener('click', (e) => {
+    const a = (e.target as Element).closest<HTMLAnchorElement>('.yt-link');
+    if (!a) return;
+    const box = a.closest<HTMLElement>('.yt');
+    const id = box?.dataset.yt;
+    if (!box || !id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return;
+    e.preventDefault();
+    const f = document.createElement('iframe');
+    f.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+    f.title = '유튜브 동영상';
+    f.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    f.allowFullscreen = true;
+    f.referrerPolicy = 'strict-origin-when-cross-origin';
+    box.replaceChildren(f);
+    f.focus();
+  });
+</script>

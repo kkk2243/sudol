@@ -1,0 +1,140 @@
+---
+import Base from '../layouts/Base.astro';
+import Img from '../components/Img.astro';
+import PostCard from '../components/PostCard.astro';
+import AuthorBox from '../components/AuthorBox.astro';
+import EmptyState from '../components/EmptyState.astro';
+import { siteData } from '../lib/site';
+import { setPublicCache } from '../lib/cache';
+import { siteUrl } from '../lib/env';
+import { formatDateKo } from '../lib/util';
+
+const site = await siteData(Astro.locals);
+setPublicCache(Astro.response.headers, { index: site.index });
+const { settings, published, categories, categoryMap } = site;
+
+const hero = published[0];
+const heroCat = hero ? categoryMap.get(hero.category) : undefined;
+const sections = categories
+  .map((c) => ({ c, posts: published.filter((p) => p.category === c.slug && p.id !== hero?.id).slice(0, 3) }))
+  .filter((s) => s.posts.length > 0);
+const recent = published.filter((p) => p.id !== hero?.id).slice(0, 6);
+const base = siteUrl(Astro.url);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: settings.title,
+  url: base,
+  description: settings.description,
+  inLanguage: 'ko-KR',
+  author: { '@type': 'Person', name: settings.authorName, url: `${base}/about` },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${base}/search?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+};
+---
+
+<Base site={site} seo={{ title: settings.title, description: settings.description, canonical: '/', jsonLd, image: hero?.cover?.src }}>
+  <h1 class="sr-only">{settings.title}</h1>
+
+  {
+    !hero ? (
+      <div class="container-wide pt-12">
+        <EmptyState title="첫 글을 기다리고 있어요" text="관리자 화면에서 첫 번째 맛집·일상·여행 이야기를 올려보세요." emoji="🍳" />
+      </div>
+    ) : (
+      <section aria-labelledby="hero-title" class="container-wide pt-6 md:pt-10">
+        <article class="group relative grid items-center gap-6 md:grid-cols-[1.35fr_1fr] md:gap-10">
+          <div class="relative aspect-[4/3] overflow-hidden rounded-3xl bg-soft md:aspect-[5/4]">
+            {hero.cover?.src ? (
+              <Img
+                src={hero.cover.src}
+                alt={hero.cover.alt || ''}
+                priority
+                sizes="(min-width: 1160px) 640px, (min-width: 768px) 58vw, 100vw"
+                class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <div class="flex h-full items-center justify-center text-7xl" aria-hidden="true">
+                {heroCat?.emoji ?? '📝'}
+              </div>
+            )}
+          </div>
+          <div>
+            <p class="flex flex-wrap items-center gap-2 text-sm font-bold text-accent-ink">
+              <span class="rounded-full bg-accent-soft px-2.5 py-0.5">최신 글</span>
+              {heroCat && (
+                <span>
+                  {heroCat.emoji} {heroCat.name}
+                </span>
+              )}
+              {hero.sample && <span class="badge-sample">샘플</span>}
+            </p>
+            <h2 id="hero-title" class="mt-3 text-[1.75rem] font-extrabold leading-[1.3] tracking-tight md:text-[2.25rem]">
+              <a href={`/post/${hero.slug}`} class="after:absolute after:inset-0 group-hover:underline group-hover:decoration-2 group-hover:underline-offset-[6px]">
+                {hero.title}
+              </a>
+            </h2>
+            <p class="mt-4 text-[1.0625rem] leading-relaxed text-ink-2">{hero.excerpt}</p>
+            <p class="mt-5 text-sm text-ink-3">
+              {settings.authorName} · <time datetime={hero.publishedAt}>{formatDateKo(hero.publishedAt)}</time> · {hero.readingMinutes}분 읽기
+            </p>
+          </div>
+        </article>
+      </section>
+    )
+  }
+
+  {
+    sections.map(({ c, posts }) => (
+      <section aria-labelledby={`sec-${c.slug}`} class="container-wide mt-20">
+        <div class="mb-6 flex items-end justify-between gap-4 border-b border-line pb-3">
+          <div>
+            <h2 id={`sec-${c.slug}`} class="text-2xl font-extrabold tracking-tight">
+              <span aria-hidden="true">{c.emoji}</span> {c.name}
+            </h2>
+            {c.description && <p class="mt-1 text-sm text-ink-3">{c.description}</p>}
+          </div>
+          <a href={`/category/${c.slug}`} class="shrink-0 text-sm font-semibold text-accent-ink hover:underline underline-offset-4">
+            {c.name} 더보기 →
+          </a>
+        </div>
+        <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((p) => (
+            <PostCard post={p} category={categoryMap.get(p.category)} />
+          ))}
+        </div>
+      </section>
+    ))
+  }
+
+  {
+    hero && sections.length === 0 && recent.length > 0 && (
+      <section aria-labelledby="sec-recent" class="container-wide mt-20">
+        <h2 id="sec-recent" class="mb-6 border-b border-line pb-3 text-2xl font-extrabold">최근 글</h2>
+        <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {recent.map((p) => (
+            <PostCard post={p} category={categoryMap.get(p.category)} />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <div class="container-wide mt-20">
+    <AuthorBox settings={settings} />
+  </div>
+
+  {
+    published.length > 4 && (
+      <div class="container-wide mt-10 text-center">
+        <a href="/posts" class="btn">
+          전체 글 보기 ({published.length})
+        </a>
+      </div>
+    )
+  }
+</Base>

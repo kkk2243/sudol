@@ -1,0 +1,98 @@
+---
+import '../../styles/global.css';
+import '../../styles/admin.css';
+import { authConfigError } from '../../lib/auth';
+
+if (Astro.locals.session) return Astro.redirect('/admin');
+const cfgError = authConfigError();
+const errorMsg = (Astro.url.searchParams.get('error') || '').slice(0, 120);
+const nextRaw = Astro.url.searchParams.get('next') || '/admin';
+const next = nextRaw.startsWith('/admin') && !nextRaw.startsWith('//') ? nextRaw : '/admin';
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>관리자 로그인</title>
+    <script is:inline>
+      try {
+        var t = localStorage.getItem('theme');
+        if (t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body class="flex min-h-dvh items-center justify-center bg-bg px-4">
+    <main class="w-full max-w-sm">
+      <p class="text-center text-4xl" aria-hidden="true">🍙</p>
+      <h1 class="mt-3 text-center text-2xl font-extrabold">관리자 로그인</h1>
+
+      {
+        cfgError && (
+          <div class="card mt-6 border-amber-400 p-4 text-sm leading-relaxed" role="alert">
+            <p class="font-bold">⚠️ 아직 관리자 설정이 끝나지 않았어요</p>
+            <p class="mt-1 text-ink-2">{cfgError}</p>
+            <p class="mt-2 text-ink-3">
+              Netlify → Site configuration → Environment variables 에 ADMIN_ID, ADMIN_PASSWORD_HASH, SESSION_SECRET 을 넣고 다시 배포하세요. (README 참고)
+            </p>
+          </div>
+        )
+      }
+
+      <form id="login-form" class="card mt-6 space-y-4 p-6" method="post" action="/api/admin/login" data-next={next}>
+        <input type="hidden" name="next" value={next} />
+        <label class="field">
+          <span class="label">아이디</span>
+          <input class="input" name="id" autocomplete="username" required autocapitalize="off" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="label">비밀번호</span>
+          <input class="input" type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <p id="login-error" class="min-h-[1.25rem] text-sm font-semibold text-red-600 dark:text-red-400" role="alert">{errorMsg}</p>
+        <button type="submit" class="btn btn-primary w-full">로그인</button>
+      </form>
+      <p class="mt-6 text-center text-sm"><a href="/" class="text-ink-3 hover:underline">← 블로그로 돌아가기</a></p>
+    </main>
+    <script>
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const err = document.getElementById('login-error')!;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = form.querySelector('button')!;
+        const fd = new FormData(form);
+        const id = String(fd.get('id') || '').trim();
+        const password = String(fd.get('password') || '');
+        if (!id || !password) {
+          err.textContent = '아이디와 비밀번호를 입력해 주세요.';
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = '확인 중…';
+        err.textContent = '';
+        try {
+          const r = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ id, password }),
+            credentials: 'same-origin',
+          });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.ok) {
+            location.href = form.dataset.next || '/admin';
+            return;
+          }
+          err.textContent = data.error || '로그인에 실패했어요.';
+          (form.elements.namedItem('password') as HTMLInputElement).value = '';
+        } catch {
+          err.textContent = '네트워크 연결을 확인해 주세요.';
+        }
+        btn.disabled = false;
+        btn.textContent = '로그인';
+      });
+    </script>
+  </body>
+</html>

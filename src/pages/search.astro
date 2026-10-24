@@ -1,0 +1,80 @@
+---
+import Base from '../layouts/Base.astro';
+import ListHeader from '../components/ListHeader.astro';
+import PostGrid from '../components/PostGrid.astro';
+import Pagination from '../components/Pagination.astro';
+import EmptyState from '../components/EmptyState.astro';
+import { paginate, siteData } from '../lib/site';
+import { setPublicCache } from '../lib/cache';
+import { searchPosts, countTags } from '../lib/content';
+
+const site = await siteData(Astro.locals);
+// 검색어별로 CDN에 캐시(같은 검색어는 함수 재실행 없음)
+setPublicCache(Astro.response.headers, { index: site.index, query: ['q', 'page'] });
+
+const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 60);
+const results = q ? searchPosts(site.published, q) : [];
+const pg = paginate(results, Astro.url.searchParams.get('page'));
+const popularTags = countTags(site.published).slice(0, 15);
+---
+
+<Base
+  site={site}
+  seo={{
+    title: q ? `'${q}' 검색 결과 | ${site.settings.title}` : `검색 | ${site.settings.title}`,
+    description: `${site.settings.title}에서 맛집·일상·여행 글을 검색하세요.`,
+    canonical: '/search',
+    noindex: !!q,
+  }}
+>
+  <ListHeader eyebrow="SEARCH" title="검색">
+    <form action="/search" method="get" role="search" class="mt-6 flex max-w-xl gap-2">
+      <label for="q" class="sr-only">검색어</label>
+      <input
+        id="q"
+        name="q"
+        type="search"
+        value={q}
+        maxlength="60"
+        placeholder="가게 이름, 지역, 태그로 찾아보세요"
+        class="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-base outline-none focus:border-accent"
+        autocomplete="off"
+        enterkeyhint="search"
+      />
+      <button type="submit" class="btn btn-primary h-12 px-5">검색</button>
+    </form>
+    {q && <p class="mt-4 text-sm text-ink-3" role="status">'{q}' 검색 결과 {results.length}개</p>}
+  </ListHeader>
+
+  <div class="container-wide">
+    {
+      q ? (
+        results.length ? (
+          <>
+            <PostGrid posts={pg.items} site={site} headingLevel="h2" />
+            <Pagination page={pg.page} total={pg.total} basePath="/search" extra={{ q }} />
+          </>
+        ) : (
+          <EmptyState emoji="🔍" title="검색 결과가 없어요" text="다른 단어로 검색하거나, 아래 태그를 눌러 둘러보세요." />
+        )
+      ) : null
+    }
+
+    {
+      popularTags.length > 0 && (
+        <section aria-labelledby="tags-title" class="mt-12">
+          <h2 id="tags-title" class="text-lg font-bold">많이 쓴 태그</h2>
+          <ul class="mt-4 flex flex-wrap gap-2">
+            {popularTags.map((t) => (
+              <li>
+                <a href={`/tag/${encodeURIComponent(t.name)}`} class="chip hover:bg-accent-soft hover:text-accent-ink">
+                  #{t.name} <span class="text-ink-3">{t.count}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>

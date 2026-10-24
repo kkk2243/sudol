@@ -1,0 +1,112 @@
+---
+import '../styles/global.css';
+import '../styles/admin.css';
+
+interface Props {
+  title: string;
+  active?: 'posts' | 'new' | 'categories' | 'settings' | 'data';
+  /** 편집기처럼 화면을 넓게 쓰는 페이지 */
+  wide?: boolean;
+}
+const { title, active, wide = false } = Astro.props;
+const csrf = Astro.locals.session?.csrf ?? '';
+const nav = [
+  { key: 'posts', href: '/admin', label: '글 목록', icon: '📝' },
+  { key: 'new', href: '/admin/posts/new', label: '새 글', icon: '✏️' },
+  { key: 'categories', href: '/admin/categories', label: '카테고리·태그', icon: '🗂️' },
+  { key: 'settings', href: '/admin/settings', label: '블로그 설정', icon: '⚙️' },
+  { key: 'data', href: '/admin/data', label: '데이터 관리', icon: '💾' },
+] as const;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="csrf-token" content={csrf} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title} · 관리자</title>
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var d = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (d) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="admin min-h-dvh bg-bg">
+    <a href="#admin-main" class="skip-link">본문으로 건너뛰기</a>
+    <header class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
+      <div class="flex h-14 items-center gap-3 px-4 md:px-6">
+        <a href="/admin" class="font-extrabold"><span aria-hidden="true">🍙</span> 관리자</a>
+        <nav aria-label="관리자 메뉴" class="ml-4 hidden lg:block">
+          <ul class="flex gap-1">
+            {
+              nav.map((n) => (
+                <li>
+                  <a href={n.href} class:list={['admin-nav-link', { 'is-active': active === n.key }]} aria-current={active === n.key ? 'page' : undefined}>
+                    <span aria-hidden="true">{n.icon}</span> {n.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+        <div class="ml-auto flex items-center gap-2">
+          <a href="/" target="_blank" rel="noopener" class="btn btn-sm">블로그 보기 ↗</a>
+          <button type="button" class="btn btn-sm" data-logout>로그아웃</button>
+        </div>
+      </div>
+      <nav aria-label="관리자 메뉴" class="border-t border-line lg:hidden">
+        <ul class="no-scrollbar flex gap-1 overflow-x-auto px-3 py-2">
+          {
+            nav.map((n) => (
+              <li>
+                <a href={n.href} class:list={['admin-nav-link whitespace-nowrap', { 'is-active': active === n.key }]} aria-current={active === n.key ? 'page' : undefined}>
+                  <span aria-hidden="true">{n.icon}</span> {n.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </header>
+    <main id="admin-main" class:list={['mx-auto px-4 pb-24 pt-6 md:px-6', wide ? 'max-w-[1400px]' : 'max-w-[1080px]']}>
+      <slot />
+    </main>
+
+    <div id="toast-root" class="toast-root" role="status" aria-live="polite"></div>
+
+    <dialog id="confirm-dialog" class="admin-dialog" aria-labelledby="confirm-title">
+      <form method="dialog">
+        <h2 id="confirm-title" class="text-lg font-bold" data-title>확인</h2>
+        <p class="mt-2 text-ink-2" data-message></p>
+        <div class="mt-6 flex justify-end gap-2">
+          <button value="cancel" class="btn" data-cancel>취소</button>
+          <button value="ok" class="btn btn-primary" data-ok>확인</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      import { api, toast } from '../admin/client';
+      document.querySelector('[data-logout]')?.addEventListener('click', async () => {
+        try {
+          await api('/api/admin/logout', { method: 'POST' });
+        } catch {}
+        location.href = '/admin/login';
+      });
+      const flash = new URLSearchParams(location.search).get('msg');
+      if (flash) {
+        toast(flash);
+        const u = new URL(location.href);
+        u.searchParams.delete('msg');
+        history.replaceState(null, '', u);
+      }
+    </script>
+  </body>
+</html>

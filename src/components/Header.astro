@@ -1,0 +1,88 @@
+---
+import type { Category, Settings } from '../lib/types';
+import ThemeToggle from './ThemeToggle.astro';
+
+interface Props {
+  settings: Settings;
+  categories: Category[];
+  active?: string;
+}
+const { settings, categories, active } = Astro.props;
+const path = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+  <div class="container-wide flex h-14 items-center gap-3 md:h-16">
+    <a href="/" class="group flex min-w-0 items-center gap-2" aria-label={`${settings.title} 홈`}>
+      <span class="text-2xl leading-none" aria-hidden="true">🍙</span>
+      <span class="flex min-w-0 flex-col leading-tight">
+        <span class="truncate text-[1.05rem] font-extrabold tracking-tight md:text-lg">
+          {settings.authorName}<span class="text-accent">.</span>log
+        </span>
+        <span class="hidden truncate text-[0.7rem] font-medium text-ink-3 sm:block">맛집 · 일상 · 여행</span>
+      </span>
+    </a>
+
+    <nav aria-label="카테고리" class="ml-6 hidden md:block">
+      <ul class="flex items-center gap-1">
+        {
+          categories.map((c) => (
+            <li>
+              <a
+                href={`/category/${c.slug}`}
+                class:list={[
+                  'rounded-full px-3 py-1.5 text-[0.95rem] font-semibold transition-colors hover:bg-soft',
+                  active === c.slug ? 'bg-accent-soft text-accent-ink' : 'text-ink-2',
+                ]}
+                aria-current={active === c.slug ? 'page' : undefined}
+              >
+                <span aria-hidden="true">{c.emoji}</span> {c.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-1">
+      <a
+        href="/search"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-2 hover:bg-soft"
+        aria-label="검색"
+        aria-current={path === '/search' ? 'page' : undefined}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </a>
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <!-- 모바일: 가로 스크롤 카테고리 탭 (JS 없음) -->
+  <nav aria-label="카테고리" class="border-t border-line md:hidden">
+    <ul class="no-scrollbar container-wide flex gap-1 overflow-x-auto py-2">
+      <li>
+        <a
+          href="/posts"
+          class:list={['block whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold', path === '/posts' ? 'bg-accent-soft text-accent-ink' : 'text-ink-2']}
+          >전체</a
+        >
+      </li>
+      {
+        categories.map((c) => (
+          <li>
+            <a
+              href={`/category/${c.slug}`}
+              class:list={[
+                'block whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold',
+                active === c.slug ? 'bg-accent-soft text-accent-ink' : 'text-ink-2',
+              ]}
+              aria-current={active === c.slug ? 'page' : undefined}
+            >
+              <span aria-hidden="true">{c.emoji}</span> {c.name}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</header>

@@ -1,0 +1,43 @@
+---
+import type { TocItem } from '../lib/markdown/render';
+interface Props {
+  toc: TocItem[];
+  variant: 'inline' | 'sidebar';
+}
+const { toc, variant } = Astro.props;
+---
+
+{
+  variant === 'inline' ? (
+    <details class="group my-8 rounded-2xl border border-line bg-surface px-5 py-4 xl:hidden">
+      <summary class="flex cursor-pointer list-none items-center justify-between font-bold">
+        목차
+        <span class="text-ink-3 transition-transform group-open:rotate-180" aria-hidden="true">
+          ▾
+        </span>
+      </summary>
+      <ol class="mt-3 space-y-2 text-[0.95rem]">
+        {toc.map((t) => (
+          <li class:list={[t.depth === 3 && 'pl-4']}>
+            <a href={`#${t.id}`} class="text-ink-2 hover:text-accent-ink">
+              {t.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </details>
+  ) : (
+    <nav aria-label="목차" class="text-sm">
+      <p class="mb-3 text-xs font-bold tracking-wider text-ink-3">목차</p>
+      <ol class="space-y-2 border-l border-line">
+        {toc.map((t) => (
+          <li class:list={['-ml-px border-l border-transparent pl-4 hover:border-accent', t.depth === 3 && 'pl-7']}>
+            <a href={`#${t.id}`} class="block leading-snug text-ink-2 hover:text-accent-ink">
+              {t.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}

@@ -1,0 +1,27 @@
+---
+import PostCard from './PostCard.astro';
+import EmptyState from './EmptyState.astro';
+import type { PostSummary } from '../lib/types';
+import type { SiteData } from '../lib/site';
+
+interface Props {
+  posts: PostSummary[];
+  site: SiteData;
+  emptyTitle?: string;
+  emptyText?: string;
+  headingLevel?: 'h2' | 'h3';
+}
+const { posts, site, emptyTitle = '아직 글이 없어요', emptyText = '곧 맛있는 이야기로 채워질 예정이에요.', headingLevel } = Astro.props;
+---
+
+{
+  posts.length ? (
+    <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+      {posts.map((p) => (
+        <PostCard post={p} category={site.categoryMap.get(p.category)} headingLevel={headingLevel} />
+      ))}
+    </div>
+  ) : (
+    <EmptyState title={emptyTitle} text={emptyText} />
+  )
+}

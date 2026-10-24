@@ -1,0 +1,33 @@
+---
+import type { Settings } from '../lib/types';
+import Img from './Img.astro';
+
+interface Props {
+  settings: Settings;
+  compact?: boolean;
+}
+const { settings, compact = false } = Astro.props;
+---
+
+<section
+  aria-label="작성자 소개"
+  class:list={['flex items-center gap-5 rounded-3xl bg-accent-soft/70 dark:bg-accent-soft', compact ? 'p-5' : 'p-6 md:p-8']}
+>
+  <div class:list={['shrink-0 overflow-hidden rounded-full bg-surface ring-4 ring-surface', compact ? 'h-16 w-16' : 'h-20 w-20 md:h-24 md:w-24']}>
+    {
+      settings.profileImage ? (
+        <Img src={settings.profileImage} alt={`${settings.authorName} 프로필 사진`} sizes="96px" class="h-full w-full object-cover" />
+      ) : (
+        <div class="flex h-full w-full items-center justify-center text-4xl" aria-hidden="true">🐻</div>
+      )
+    }
+  </div>
+  <div class="min-w-0">
+    <p class="text-xs font-bold tracking-wider text-accent-ink">ABOUT</p>
+    <p class="mt-0.5 text-lg font-extrabold">{settings.authorName}</p>
+    <p class="mt-1 text-[0.95rem] leading-relaxed text-ink-2">{settings.description}</p>
+    <a href="/about" class="mt-2 inline-block text-sm font-semibold text-accent-ink underline-offset-4 hover:underline">
+      {settings.authorName} 더 알아보기 →
+    </a>
+  </div>
+</section>

@@ -1,0 +1,412 @@
+@import './pretendard.css';
+@import 'tailwindcss';
+
+/* 다크 모드: <html class="dark"> 기준 (시스템 설정 + 사용자 토글) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── 디자인 토큰: 포인트 컬러 1개(감 주황) + 따뜻한 중립색 ── */
+:root {
+  --bg: #fffcf8;
+  --surface: #ffffff;
+  --soft: #f6f1ea;
+  --ink: #1f1b16;
+  --ink-2: #4f473f;
+  --ink-3: #6f665c;
+  --line: #ebe3d8;
+  --accent: #c2410c;
+  --accent-ink: #9a3412;
+  --accent-soft: #fff1e6;
+  --on-accent: #ffffff;
+  --focus: #c2410c;
+  color-scheme: light;
+}
+.dark {
+  --bg: #161412;
+  --surface: #1f1c19;
+  --soft: #28241f;
+  --ink: #f4efe9;
+  --ink-2: #cfc6bc;
+  --ink-3: #a99f95;
+  --line: #36312b;
+  --accent: #fb923c;
+  --accent-ink: #fdba74;
+  --accent-soft: #3a2416;
+  --on-accent: #1a0f08;
+  --focus: #fdba74;
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+    'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-soft: var(--soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .container-wide {
+    width: 100%;
+    max-width: 1160px;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .container-wide {
+      padding-inline: 2rem;
+    }
+  }
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -3rem;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+  }
+  .skip-link:focus {
+    top: 1rem;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    cursor: pointer;
+  }
+  .btn:hover {
+    background: var(--soft);
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .btn-primary:hover {
+    background: var(--accent-ink);
+    border-color: var(--accent-ink);
+  }
+  .btn-danger {
+    color: #b91c1c;
+    border-color: color-mix(in srgb, #b91c1c 35%, var(--line));
+  }
+  .dark .btn-danger {
+    color: #fca5a5;
+  }
+  .btn-sm {
+    min-height: 2rem;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.8125rem;
+    border-radius: 0.6rem;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    background: var(--soft);
+    color: var(--ink-2);
+  }
+  .badge-sample {
+    display: inline-block;
+    padding: 0.05rem 0.45rem;
+    border-radius: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #fde68a;
+    color: #713f12;
+    vertical-align: middle;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  /* 광고 자리: 크기를 미리 고정해 레이아웃 밀림(CLS) 방지 */
+  .ad-slot {
+    display: block;
+    width: 100%;
+    min-height: 280px;
+    margin-block: 2rem;
+    overflow: hidden;
+    contain: layout;
+  }
+  .ad-slot-label {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    text-align: center;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.05em;
+  }
+  .ad-slot.is-sidebar {
+    min-height: 600px;
+    margin-block: 0;
+  }
+}
+
+/* ── 본문 타이포그래피 (폭 680px, 줄간격 넉넉하게) ── */
+.prose {
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  color: var(--ink);
+  letter-spacing: -0.003em;
+}
+@media (min-width: 768px) {
+  .prose {
+    font-size: 1.125rem;
+  }
+}
+.prose > * + * {
+  margin-top: 1.4em;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose h2 {
+  font-size: 1.5em;
+  line-height: 1.4;
+  font-weight: 750;
+  margin-top: 2.4em;
+  letter-spacing: -0.02em;
+}
+.prose h3 {
+  font-size: 1.25em;
+  line-height: 1.45;
+  font-weight: 700;
+  margin-top: 2em;
+}
+.prose h4 {
+  font-size: 1.05em;
+  font-weight: 700;
+  margin-top: 1.8em;
+}
+.prose h2 + *,
+.prose h3 + *,
+.prose h4 + * {
+  margin-top: 0.8em;
+}
+.prose a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.prose a:hover {
+  text-decoration-thickness: 2px;
+}
+.prose strong {
+  font-weight: 700;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.4em;
+}
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
+.prose li + li {
+  margin-top: 0.4em;
+}
+.prose li::marker {
+  color: var(--ink-3);
+}
+.prose blockquote {
+  border-left: 3px solid var(--accent);
+  background: var(--soft);
+  padding: 0.9em 1.2em;
+  border-radius: 0 0.75rem 0.75rem 0;
+  color: var(--ink-2);
+}
+.prose blockquote > * + * {
+  margin-top: 0.6em;
+}
+.prose hr {
+  border: 0;
+  height: 1px;
+  background: var(--line);
+  margin-block: 3em;
+}
+.prose code {
+  font-size: 0.88em;
+  background: var(--soft);
+  padding: 0.15em 0.4em;
+  border-radius: 0.35em;
+}
+.prose pre {
+  background: #1f1b16;
+  color: #f4efe9;
+  padding: 1em 1.2em;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  line-height: 1.6;
+  font-size: 0.9em;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+}
+.prose figure {
+  margin-block: 2em;
+}
+.prose figure img {
+  width: 100%;
+  border-radius: 0.875rem;
+  background: var(--soft);
+}
+.prose figcaption {
+  margin-top: 0.6em;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+.prose .table-wrap {
+  overflow-x: auto;
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.prose th,
+.prose td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.6em 0.8em;
+  text-align: left;
+}
+.prose th {
+  font-weight: 700;
+  background: var(--soft);
+}
+.prose input[type='checkbox'] {
+  margin-right: 0.4em;
+}
+/* 유튜브 가벼운 임베드 */
+.prose .yt {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  background: #000;
+}
+.prose .yt a,
+.prose .yt iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.prose .yt img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  opacity: 0.92;
+}
+.prose .yt-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 68px;
+  height: 48px;
+  margin: -24px 0 0 -34px;
+  border-radius: 12px;
+  background: #e11d48;
+}
+.prose .yt-play::after {
+  content: '';
+  position: absolute;
+  left: 27px;
+  top: 14px;
+  border-style: solid;
+  border-width: 10px 0 10px 17px;
+  border-color: transparent transparent transparent #fff;
+}
+.prose .yt a:hover .yt-play {
+  background: #be123c;
+}
