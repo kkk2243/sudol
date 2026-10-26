@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import ListHeader from '../components/ListHeader.astro';
+import CategoryFilter from '../components/CategoryFilter.astro';
 import PostGrid from '../components/PostGrid.astro';
 import Pagination from '../components/Pagination.astro';
 import { paginate, siteData } from '../lib/site';
@@ -11,7 +12,6 @@ setPublicCache(Astro.response.headers, { index: site.index, query: ['page'] });
 const pg = paginate(site.published, Astro.url.searchParams.get('page'));
 if (pg.outOfRange) return Astro.rewrite('/404');
 const suffix = pg.page > 1 ? ` (${pg.page}페이지)` : '';
-const canonical = pg.page > 1 ? `/posts?page=${pg.page}` : '/posts';
 ---
 
 <Base
@@ -19,14 +19,16 @@ const canonical = pg.page > 1 ? `/posts?page=${pg.page}` : '/posts';
   seo={{
     title: `전체 글${suffix} | ${site.settings.title}`,
     description: `${site.settings.authorName}가 쓴 맛집·일상·여행 글 전체 목록${suffix}`,
-    canonical,
+    canonical: pg.page > 1 ? `/posts?page=${pg.page}` : '/posts',
     prev: pg.page > 1 ? (pg.page === 2 ? '/posts' : `/posts?page=${pg.page - 1}`) : undefined,
     next: pg.page < pg.total ? `/posts?page=${pg.page + 1}` : undefined,
   }}
 >
-  <ListHeader eyebrow="ALL POSTS" title="전체 글" count={site.published.length} />
-  <div class="container-wide">
-    <PostGrid posts={pg.items} site={site} headingLevel="h2" />
+  <ListHeader eyebrow="전체 글" title="모든 이야기" description={site.settings.heroSubtitle} count={site.published.length}>
+    <CategoryFilter categories={site.categories} active="all" />
+  </ListHeader>
+  <div class="wrap">
+    <PostGrid posts={pg.items} site={site} headingLevel="h2" eager={pg.page === 1} />
     <Pagination page={pg.page} total={pg.total} basePath="/posts" />
   </div>
 </Base>

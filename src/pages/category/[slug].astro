@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ListHeader from '../../components/ListHeader.astro';
+import CategoryFilter from '../../components/CategoryFilter.astro';
 import PostGrid from '../../components/PostGrid.astro';
 import Pagination from '../../components/Pagination.astro';
 import { paginate, siteData } from '../../lib/site';
@@ -21,7 +22,6 @@ const suffix = pg.page > 1 ? ` (${pg.page}페이지)` : '';
 
 <Base
   site={site}
-  activeCategory={slug}
   seo={{
     title: `${cat.name}${suffix} | ${site.settings.title}`,
     description: cat.description || `${site.settings.authorName}의 ${cat.name} 글 모음`,
@@ -30,12 +30,15 @@ const suffix = pg.page > 1 ? ` (${pg.page}페이지)` : '';
     next: pg.page < pg.total ? `${basePath}?page=${pg.page + 1}` : undefined,
   }}
 >
-  <ListHeader eyebrow={`${cat.emoji} CATEGORY`} title={cat.name} description={cat.description} count={list.length} />
-  <div class="container-wide">
+  <ListHeader eyebrow={`${cat.emoji} 카테고리`.trim()} title={cat.name} description={cat.description} count={list.length}>
+    <CategoryFilter categories={site.categories} active={slug} />
+  </ListHeader>
+  <div class="wrap">
     <PostGrid
       posts={pg.items}
       site={site}
       headingLevel="h2"
+      eager={pg.page === 1}
       emptyTitle={`아직 ${cat.name} 글이 없어요`}
       emptyText="첫 이야기를 준비하고 있어요. 다른 카테고리의 글을 먼저 둘러보세요."
     />

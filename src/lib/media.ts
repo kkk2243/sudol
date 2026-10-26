@@ -55,7 +55,7 @@ export function imgAttrs(src: string, sizes = '(min-width: 768px) 680px, 100vw')
     return { src: mediaUrl(base), width: p.width, height: p.height, srcset: set.join(', '), sizes };
   }
   // 샘플 플레이스홀더 SVG
-  if (src.startsWith('/placeholders/')) return { src, width: 1600, height: 1000 };
+  if (src.startsWith('/placeholders/')) return { src, width: 1200, height: 1200 };
   return { src };
 }
 

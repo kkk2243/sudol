@@ -164,10 +164,15 @@ export async function createSession(cookies: AstroCookies, secure: boolean): Pro
     path: '/',
     maxAge: SESSION_TTL_SEC,
   });
+  // 블로그 화면에 관리자 막대를 띄울지 판단하는 표시용 쿠키(비밀 정보 없음, 실제 권한은 위 세션 쿠키로만 확인)
+  cookies.set(ADMIN_FLAG_COOKIE, '1', { httpOnly: false, secure, sameSite: 'lax', path: '/', maxAge: SESSION_TTL_SEC });
 }
+
+export const ADMIN_FLAG_COOKIE = 'sd_admin';
 
 export function clearSession(cookies: AstroCookies, secure: boolean): void {
   cookies.set(SESSION_COOKIE, '', { httpOnly: true, secure, sameSite: 'strict', path: '/', maxAge: 0 });
+  cookies.set(ADMIN_FLAG_COOKIE, '', { httpOnly: false, secure, sameSite: 'lax', path: '/', maxAge: 0 });
 }
 
 export interface Session {

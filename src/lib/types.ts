@@ -67,6 +67,15 @@ export interface AdSlots {
   sidebar: string;
 }
 
+/** 메뉴 한 칸 / 버튼 하나 */
+export interface MenuItem {
+  label: string;
+  /** /category/food, /about 처럼 사이트 안 주소 또는 https:// 외부 주소 */
+  href: string;
+  /** 새 창으로 열기 */
+  newTab?: boolean;
+}
+
 export interface Settings {
   title: string;
   tagline: string;
@@ -78,4 +87,27 @@ export interface Settings {
   adsenseClient: string; // ca-pub-xxxxxxxx
   adSlots: AdSlots;
   adsTxt: string;
+
+  /* ── 메뉴·화면 구성 (관리자 → 메뉴·홈 화면) ── */
+  /** 헤더 왼쪽 로고 글자 */
+  logoText: string;
+  /** 헤더 메뉴 */
+  menuHeader: MenuItem[];
+  /** 헤더 오른쪽 회색 버튼 (label 이 비면 숨김) */
+  headerCta: MenuItem;
+  /** 푸터 가운데 메뉴 */
+  menuFooter: MenuItem[];
+  /** 홈 상단: 검은 알약 라벨 / 큰 제목(줄바꿈 가능) / 부제 */
+  heroLabel: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  /** 페이지 아래 어두운 배너 */
+  bannerEnabled: boolean;
+  bannerLabel: string;
+  bannerTitle: string;
+  bannerText: string;
+  bannerPrimary: MenuItem;
+  bannerSecondary: MenuItem;
+  /** 푸터 왼쪽 문구(줄바꿈 가능) */
+  footerSlogan: string;
 }

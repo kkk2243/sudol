@@ -15,7 +15,7 @@ setPublicCache(Astro.response.headers, { index: site.index, query: ['q', 'page']
 const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 60);
 const results = q ? searchPosts(site.published, q) : [];
 const pg = paginate(results, Astro.url.searchParams.get('page'));
-const popularTags = countTags(site.published).slice(0, 15);
+const popularTags = countTags(site.published).slice(0, 18);
 ---
 
 <Base
@@ -27,26 +27,30 @@ const popularTags = countTags(site.published).slice(0, 15);
     noindex: !!q,
   }}
 >
-  <ListHeader eyebrow="SEARCH" title="검색">
-    <form action="/search" method="get" role="search" class="mt-6 flex max-w-xl gap-2">
+  <ListHeader eyebrow="검색" title="무엇을 찾고 있나요?">
+    <form action="/search" method="get" role="search" class="mt-10 max-w-2xl">
       <label for="q" class="sr-only">검색어</label>
-      <input
-        id="q"
-        name="q"
-        type="search"
-        value={q}
-        maxlength="60"
-        placeholder="가게 이름, 지역, 태그로 찾아보세요"
-        class="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-base outline-none focus:border-accent"
-        autocomplete="off"
-        enterkeyhint="search"
-      />
-      <button type="submit" class="btn btn-primary h-12 px-5">검색</button>
+      <div class="flex items-center gap-2 rounded-full border-2 border-ink bg-surface p-1.5 pl-6 transition-shadow focus-within:shadow-[0_0_0_4px_var(--accent-soft)]">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="shrink-0 text-ink-3"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input
+          id="q"
+          name="q"
+          type="search"
+          value={q}
+          maxlength="60"
+          placeholder="가게 이름, 지역, 태그"
+          class="h-12 min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-ink-3"
+          autocomplete="off"
+          enterkeyhint="search"
+          autofocus={!q}
+        />
+        <button type="submit" class="btn btn-primary btn-pill h-12 px-6">검색</button>
+      </div>
     </form>
-    {q && <p class="mt-4 text-sm text-ink-3" role="status">'{q}' 검색 결과 {results.length}개</p>}
+    {q && <p class="mt-5 text-sm font-medium text-ink-3" role="status">'{q}' 검색 결과 {results.length}개</p>}
   </ListHeader>
 
-  <div class="container-wide">
+  <div class="wrap">
     {
       q ? (
         results.length ? (
@@ -62,13 +66,13 @@ const popularTags = countTags(site.published).slice(0, 15);
 
     {
       popularTags.length > 0 && (
-        <section aria-labelledby="tags-title" class="mt-12">
+        <section aria-labelledby="tags-title" class="mt-14">
           <h2 id="tags-title" class="text-lg font-bold">많이 쓴 태그</h2>
           <ul class="mt-4 flex flex-wrap gap-2">
             {popularTags.map((t) => (
               <li>
-                <a href={`/tag/${encodeURIComponent(t.name)}`} class="chip hover:bg-accent-soft hover:text-accent-ink">
-                  #{t.name} <span class="text-ink-3">{t.count}</span>
+                <a href={`/tag/${encodeURIComponent(t.name)}`} class="chip">
+                  #{t.name} <span class="opacity-60">{t.count}</span>
                 </a>
               </li>
             ))}

@@ -1,0 +1,240 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { getCategories, getSettings } from '../../lib/content';
+
+const [s, categories] = await Promise.all([getSettings(), getCategories()]);
+// 링크 고르기 목록: 카테고리 + 기본 페이지
+const presets = [
+  { label: '홈', href: '/' },
+  { label: '전체 글', href: '/posts' },
+  ...categories.map((c) => ({ label: c.name, href: `/category/${c.slug}` })),
+  { label: '소개', href: '/about' },
+  { label: '연락하기', href: '/contact' },
+  { label: '검색', href: '/search' },
+  { label: '개인정보처리방침', href: '/privacy' },
+];
+const data = JSON.stringify({ menuHeader: s.menuHeader, menuFooter: s.menuFooter, presets }).replace(/</g, '\\u003c');
+---
+
+<Admin title="메뉴·홈 화면" active="menu">
+  <script type="application/json" id="menu-data" set:html={data} />
+  <datalist id="link-presets">{presets.map((p) => <option value={p.href}>{p.label}</option>)}</datalist>
+
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-extrabold">메뉴·홈 화면</h1>
+      <p class="mt-1 text-sm text-ink-3">블로그 위쪽 메뉴, 아래쪽 메뉴, 홈 화면 문구와 배너를 바꿀 수 있어요. 저장하면 바로 반영돼요.</p>
+    </div>
+    <a href="/" target="_blank" rel="noopener" class="btn btn-sm">블로그에서 확인 ↗</a>
+  </div>
+
+  <form id="menu-form" class="mt-6 space-y-6" novalidate>
+    <!-- 헤더 -->
+    <section class="card space-y-4 p-5">
+      <div>
+        <h2 class="text-lg font-bold">헤더 (맨 위)</h2>
+        <p class="text-sm text-ink-3">로고 오른쪽에 보이는 메뉴예요. 모바일에서는 ☰ 버튼을 누르면 나와요.</p>
+      </div>
+      <label class="field max-w-sm">
+        <span class="label">로고 글자</span>
+        <input class="input" name="logoText" value={s.logoText} maxlength="30" />
+        <span class="hint">마지막 점(.)은 포인트 색으로 보여요. 예: 수돌이.log</span>
+      </label>
+      <div>
+        <p class="label mb-2 text-sm font-bold">헤더 메뉴</p>
+        <ul class="space-y-2" data-menu-list="menuHeader"></ul>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm" data-add-item="menuHeader">＋ 메뉴 추가</button>
+          <select class="select max-w-[14rem] text-sm" data-quick-add="menuHeader" aria-label="헤더 메뉴에 페이지 빠르게 추가">
+            <option value="">페이지 골라서 추가…</option>
+            {presets.map((p, i) => <option value={i}>{p.label} ({p.href})</option>)}
+          </select>
+        </div>
+      </div>
+      <fieldset class="grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
+        <legend class="mb-2 text-sm font-bold">오른쪽 회색 버튼 (비우면 숨김)</legend>
+        <label class="field"><span class="label">버튼 글자</span><input class="input" name="headerCta.label" value={s.headerCta?.label ?? ''} maxlength="24" /></label>
+        <label class="field"><span class="label">링크</span><input class="input" name="headerCta.href" value={s.headerCta?.href ?? ''} list="link-presets" spellcheck="false" /></label>
+      </fieldset>
+    </section>
+
+    <!-- 홈 상단 -->
+    <section class="card space-y-4 p-5">
+      <div>
+        <h2 class="text-lg font-bold">홈 상단 문구</h2>
+        <p class="text-sm text-ink-3">홈 화면 맨 위 검은 라벨, 큰 제목, 회색 설명이에요. 제목은 엔터로 줄을 바꿀 수 있어요.</p>
+      </div>
+      <label class="field max-w-sm"><span class="label">검은 라벨</span><input class="input" name="heroLabel" value={s.heroLabel} maxlength="30" /></label>
+      <label class="field"><span class="label">큰 제목</span><textarea class="textarea" name="heroTitle" rows="2" maxlength="120">{s.heroTitle}</textarea></label>
+      <label class="field"><span class="label">설명</span><input class="input" name="heroSubtitle" value={s.heroSubtitle} maxlength="160" /></label>
+    </section>
+
+    <!-- 배너 -->
+    <section class="card space-y-4 p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold">하단 배너</h2>
+          <p class="text-sm text-ink-3">푸터 바로 위 어두운 상자예요. 최근 글 사진 4장이 배경에 떠서 스크롤에 따라 움직여요.</p>
+        </div>
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="bannerEnabled" checked={s.bannerEnabled} class="h-5 w-5 accent-[var(--accent)]" /> 배너 보이기
+        </label>
+      </div>
+      <label class="field max-w-sm"><span class="label">작은 라벨</span><input class="input" name="bannerLabel" value={s.bannerLabel} maxlength="30" /></label>
+      <label class="field"><span class="label">제목</span><textarea class="textarea" name="bannerTitle" rows="2" maxlength="120">{s.bannerTitle}</textarea></label>
+      <label class="field"><span class="label">설명</span><textarea class="textarea" name="bannerText" rows="2" maxlength="240">{s.bannerText}</textarea></label>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="field"><span class="label">주황 버튼 글자</span><input class="input" name="bannerPrimary.label" value={s.bannerPrimary?.label ?? ''} maxlength="24" /></label>
+        <label class="field"><span class="label">주황 버튼 링크</span><input class="input" name="bannerPrimary.href" value={s.bannerPrimary?.href ?? ''} list="link-presets" spellcheck="false" /></label>
+        <label class="field"><span class="label">테두리 버튼 글자</span><input class="input" name="bannerSecondary.label" value={s.bannerSecondary?.label ?? ''} maxlength="24" /></label>
+        <label class="field"><span class="label">테두리 버튼 링크</span><input class="input" name="bannerSecondary.href" value={s.bannerSecondary?.href ?? ''} list="link-presets" spellcheck="false" /></label>
+      </div>
+      <p class="hint">버튼 글자를 비우면 그 버튼은 숨겨져요.</p>
+    </section>
+
+    <!-- 푸터 -->
+    <section class="card space-y-4 p-5">
+      <div>
+        <h2 class="text-lg font-bold">푸터 (맨 아래)</h2>
+      </div>
+      <label class="field"><span class="label">로고 아래 문구</span><textarea class="textarea" name="footerSlogan" rows="2" maxlength="160">{s.footerSlogan}</textarea></label>
+      <div>
+        <p class="mb-2 text-sm font-bold">푸터 메뉴</p>
+        <ul class="space-y-2" data-menu-list="menuFooter"></ul>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm" data-add-item="menuFooter">＋ 메뉴 추가</button>
+          <select class="select max-w-[14rem] text-sm" data-quick-add="menuFooter" aria-label="푸터 메뉴에 페이지 빠르게 추가">
+            <option value="">페이지 골라서 추가…</option>
+            {presets.map((p, i) => <option value={i}>{p.label} ({p.href})</option>)}
+          </select>
+        </div>
+      </div>
+      <p class="hint">개인정보처리방침·관리자 링크는 맨 아래 줄에 항상 자동으로 들어가요.</p>
+    </section>
+
+    <div class="save-bar -mx-4 flex items-center justify-end gap-2 md:-mx-6">
+      <span class="mr-auto hidden text-xs text-ink-3 sm:inline" id="dirty-note"></span>
+      <button type="submit" class="btn btn-primary">저장하고 블로그에 반영</button>
+    </div>
+  </form>
+
+  <template id="item-tpl">
+    <li class="menu-row flex flex-wrap items-center gap-2 rounded-xl border border-line bg-bg p-2">
+      <span class="cursor-grab px-1 text-ink-3" aria-hidden="true">⋮⋮</span>
+      <label class="min-w-[7rem] flex-1">
+        <span class="sr-only">메뉴 이름</span>
+        <input class="input" data-k="label" placeholder="메뉴 이름" maxlength="24" />
+      </label>
+      <label class="min-w-[10rem] flex-[2]">
+        <span class="sr-only">링크 주소</span>
+        <input class="input" data-k="href" placeholder="/category/food 또는 https://…" list="link-presets" spellcheck="false" />
+      </label>
+      <label class="flex items-center gap-1.5 whitespace-nowrap px-1 text-xs text-ink-2">
+        <input type="checkbox" data-k="newTab" class="h-4 w-4" /> 새 창
+      </label>
+      <span class="flex gap-1">
+        <button type="button" class="btn btn-sm" data-act="up" aria-label="위로 옮기기">↑</button>
+        <button type="button" class="btn btn-sm" data-act="down" aria-label="아래로 옮기기">↓</button>
+        <button type="button" class="btn btn-sm btn-danger" data-act="remove" aria-label="이 메뉴 삭제">삭제</button>
+      </span>
+    </li>
+  </template>
+</Admin>
+
+<script>
+  import { api, errMsg, toast, withBusy } from '../../admin/client';
+  import type { MenuItem } from '../../lib/types';
+
+  const data = JSON.parse(document.getElementById('menu-data')!.textContent || '{}') as {
+    menuHeader: MenuItem[];
+    menuFooter: MenuItem[];
+    presets: MenuItem[];
+  };
+  const form = document.getElementById('menu-form') as HTMLFormElement;
+  const tpl = document.getElementById('item-tpl') as HTMLTemplateElement;
+  let dirty = false;
+  const markDirty = () => {
+    dirty = true;
+    document.getElementById('dirty-note')!.textContent = '저장 안 된 변경사항이 있어요';
+  };
+
+  function addRow(list: HTMLElement, item: MenuItem = { label: '', href: '' }, focus = false) {
+    const li = tpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    (li.querySelector('[data-k="label"]') as HTMLInputElement).value = item.label;
+    (li.querySelector('[data-k="href"]') as HTMLInputElement).value = item.href;
+    (li.querySelector('[data-k="newTab"]') as HTMLInputElement).checked = !!item.newTab;
+    list.appendChild(li);
+    if (focus) (li.querySelector('[data-k="label"]') as HTMLInputElement).focus();
+  }
+
+  for (const key of ['menuHeader', 'menuFooter'] as const) {
+    const list = document.querySelector<HTMLElement>(`[data-menu-list="${key}"]`)!;
+    data[key].forEach((m) => addRow(list, m));
+    list.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLButtonElement>('[data-act]');
+      if (!btn) return;
+      const row = btn.closest<HTMLElement>('.menu-row')!;
+      const act = btn.dataset.act;
+      if (act === 'up' && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
+      if (act === 'down' && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+      if (act === 'remove') row.remove();
+      markDirty();
+    });
+    document.querySelector(`[data-add-item="${key}"]`)!.addEventListener('click', () => {
+      addRow(list, undefined, true);
+      markDirty();
+    });
+    const quick = document.querySelector<HTMLSelectElement>(`[data-quick-add="${key}"]`)!;
+    quick.addEventListener('change', () => {
+      const p = data.presets[Number(quick.value)];
+      if (p) addRow(list, { ...p });
+      quick.value = '';
+      markDirty();
+    });
+  }
+
+  form.addEventListener('input', markDirty);
+  window.addEventListener('beforeunload', (e) => {
+    if (dirty) e.preventDefault();
+  });
+
+  const val = (n: string) => ((form.elements.namedItem(n) as HTMLInputElement | null)?.value ?? '').trim();
+  const rows = (key: string) =>
+    [...document.querySelectorAll<HTMLElement>(`[data-menu-list="${key}"] .menu-row`)]
+      .map((r) => ({
+        label: (r.querySelector('[data-k="label"]') as HTMLInputElement).value.trim(),
+        href: (r.querySelector('[data-k="href"]') as HTMLInputElement).value.trim(),
+        newTab: (r.querySelector('[data-k="newTab"]') as HTMLInputElement).checked || undefined,
+      }))
+      .filter((m) => m.label || m.href);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      logoText: val('logoText'),
+      menuHeader: rows('menuHeader'),
+      menuFooter: rows('menuFooter'),
+      headerCta: { label: val('headerCta.label'), href: val('headerCta.href') },
+      heroLabel: val('heroLabel'),
+      heroTitle: (form.elements.namedItem('heroTitle') as HTMLTextAreaElement).value.trim(),
+      heroSubtitle: val('heroSubtitle'),
+      bannerEnabled: (form.elements.namedItem('bannerEnabled') as HTMLInputElement).checked,
+      bannerLabel: val('bannerLabel'),
+      bannerTitle: (form.elements.namedItem('bannerTitle') as HTMLTextAreaElement).value.trim(),
+      bannerText: (form.elements.namedItem('bannerText') as HTMLTextAreaElement).value.trim(),
+      bannerPrimary: { label: val('bannerPrimary.label'), href: val('bannerPrimary.href') },
+      bannerSecondary: { label: val('bannerSecondary.label'), href: val('bannerSecondary.href') },
+      footerSlogan: (form.elements.namedItem('footerSlogan') as HTMLTextAreaElement).value.trim(),
+    };
+    await withBusy(form.querySelector('button[type="submit"]'), '저장 중', async () => {
+      try {
+        await api('/api/admin/settings', { method: 'PUT', json: payload });
+        dirty = false;
+        document.getElementById('dirty-note')!.textContent = '';
+        toast('저장했어요. 블로그에 바로 반영돼요.');
+      } catch (err) {
+        toast(errMsg(err), true, 6000);
+      }
+    });
+  });
+</script>

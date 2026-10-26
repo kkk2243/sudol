@@ -1,0 +1,60 @@
+---
+/**
+ * 페이지 아래 어두운 배너.
+ * 최근 글의 대표 사진 4장이 배경에 떠 있고, 스크롤하면 서로 다른 속도로 움직입니다(패럴랙스).
+ * 문구·버튼은 관리자 → 메뉴·홈 화면에서 바꿀 수 있어요.
+ */
+import type { MenuItem } from '../lib/types';
+import type { SiteData } from '../lib/site';
+import { imgAttrs } from '../lib/media';
+
+interface Props {
+  site: SiteData;
+}
+const { settings, published } = Astro.props.site;
+const pics = published.filter((p) => p.cover?.src).slice(0, 4).map((p) => p.cover!.src);
+// 배치: 위치 클래스, 크기, 패럴랙스 속도
+const slots = [
+  { cls: 'left-[14%] -top-10 w-[26%] aspect-[4/3]', speed: '0.12' },
+  { cls: '-right-6 top-[-6%] w-[28%] aspect-[4/3]', speed: '0.22' },
+  { cls: 'left-[4%] bottom-[-8%] w-[25%] aspect-[4/3]', speed: '0.18' },
+  { cls: 'right-[22%] -bottom-12 w-[15%] aspect-square', speed: '0.08' },
+];
+const ext = (m: MenuItem) => (m.newTab || /^https?:/.test(m.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {});
+const btns = [
+  settings.bannerPrimary?.label ? { m: settings.bannerPrimary, cls: 'btn btn-accent' } : null,
+  settings.bannerSecondary?.label ? { m: settings.bannerSecondary, cls: 'btn btn-on-dark' } : null,
+].filter(Boolean) as { m: MenuItem; cls: string }[];
+---
+
+<section class="wrap mt-24 md:mt-36" aria-labelledby="banner-title">
+  <div class="banner px-6 py-20 text-center md:px-16 md:py-28" data-reveal>
+    {
+      pics.map((src, i) => {
+        const s = slots[i];
+        const a = imgAttrs(src, '320px');
+        return (
+          <div class:list={['banner-float hidden sm:block', s.cls]} aria-hidden="true" data-parallax={s.speed}>
+            <img src={a.src} srcset={a.srcset} sizes="320px" alt="" width={a.width} height={a.height} loading="lazy" decoding="async" />
+          </div>
+        );
+      })
+    }
+    {settings.bannerLabel && <p class="eyebrow is-light">{settings.bannerLabel}</p>}
+    <h2 id="banner-title" class="mx-auto mt-5 max-w-2xl whitespace-pre-line text-[1.75rem] font-bold leading-[1.35] tracking-[-0.03em] md:text-[2.5rem]">
+      {settings.bannerTitle}
+    </h2>
+    {settings.bannerText && <p class="mx-auto mt-5 max-w-lg whitespace-pre-line text-[0.975rem] leading-relaxed text-white/75 md:text-[1.0625rem]">{settings.bannerText}</p>}
+    {
+      btns.length > 0 && (
+        <div class="mt-9 flex flex-wrap items-center justify-center gap-2">
+          {btns.map(({ m, cls }) => (
+            <a href={m.href} class={cls} {...ext(m)}>
+              {m.label} <span aria-hidden="true">↗</span>
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</section>

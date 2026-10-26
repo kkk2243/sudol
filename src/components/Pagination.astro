@@ -2,7 +2,7 @@
 interface Props {
   page: number;
   total: number;
-  /** 페이지 번호를 받아 URL을 만드는 기준 경로 (쿼리 제외) */
+  /** 페이지 번호를 붙일 기준 경로 (쿼리 제외) */
   basePath: string;
   /** 유지할 다른 쿼리(검색어 등) */
   extra?: Record<string, string>;
@@ -19,30 +19,35 @@ for (let i = 1; i <= total; i++) {
   if (i === 1 || i === total || Math.abs(i - page) <= 1) nums.push(i);
   else if (nums[nums.length - 1] !== '…') nums.push('…');
 }
+const arrow = 'inline-flex h-10 w-10 items-center justify-center rounded-full';
 ---
 
 {
   total > 1 && (
-    <nav aria-label="페이지 이동" class="mt-14 flex items-center justify-center gap-1">
+    <nav aria-label="페이지 이동" class="mt-16 flex items-center justify-center gap-1.5">
       {page > 1 ? (
-        <a class="btn btn-sm" href={href(page - 1)} rel="prev">
-          ← 이전
+        <a class={`${arrow} hover:bg-soft`} href={href(page - 1)} rel="prev" aria-label="이전 페이지">
+          ‹
         </a>
       ) : (
-        <span class="btn btn-sm opacity-40" aria-disabled="true">← 이전</span>
+        <span class={`${arrow} text-ink-3/50`} aria-hidden="true">
+          ‹
+        </span>
       )}
-      <ul class="flex items-center gap-1 px-2">
+      <ul class="flex items-center gap-1.5">
         {nums.map((n) =>
           n === '…' ? (
-            <li class="px-1 text-ink-3" aria-hidden="true">…</li>
+            <li class="px-1 text-ink-3" aria-hidden="true">
+              …
+            </li>
           ) : (
             <li>
               <a
                 href={href(n)}
                 aria-current={n === page ? 'page' : undefined}
                 class:list={[
-                  'inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-semibold',
-                  n === page ? 'bg-accent text-on-accent' : 'text-ink-2 hover:bg-soft',
+                  'inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-semibold',
+                  n === page ? 'bg-ink text-bg' : 'text-ink-2 hover:bg-soft',
                 ]}
               >
                 {n}
@@ -52,11 +57,13 @@ for (let i = 1; i <= total; i++) {
         )}
       </ul>
       {page < total ? (
-        <a class="btn btn-sm" href={href(page + 1)} rel="next">
-          다음 →
+        <a class={`${arrow} hover:bg-soft`} href={href(page + 1)} rel="next" aria-label="다음 페이지">
+          ›
         </a>
       ) : (
-        <span class="btn btn-sm opacity-40" aria-disabled="true">다음 →</span>
+        <span class={`${arrow} text-ink-3/50`} aria-hidden="true">
+          ›
+        </span>
       )}
     </nav>
   )

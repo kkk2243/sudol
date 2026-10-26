@@ -68,6 +68,7 @@ export function toSummary(p: Post): PostSummary {
 export async function getSettings(): Promise<Settings> {
   await ensureInitialized();
   const s = await db().getJSON<Partial<Settings>>(K.settings);
+  // 예전 버전에서 저장된 설정에도 새 항목(메뉴 등)이 기본값으로 채워지도록 병합
   return { ...DEFAULT_SETTINGS, ...(s || {}), adSlots: { ...DEFAULT_SETTINGS.adSlots, ...(s?.adSlots || {}) } };
 }
 

@@ -1,0 +1,31 @@
+---
+/** "Filter by" 카테고리 알약 줄. 링크 방식이라 검색엔진도 각 카테고리 페이지를 따라갈 수 있어요. */
+import type { Category } from '../lib/types';
+
+interface Props {
+  categories: Category[];
+  /** 현재 카테고리 slug, 전체면 'all', 해당 없음이면 undefined */
+  active?: string;
+  /** 'All' 알약의 주소 (홈에서는 '/') */
+  allHref?: string;
+}
+const { categories, active, allHref = '/posts' } = Astro.props;
+---
+
+<nav aria-label="카테고리 필터" class="mt-10 flex items-center gap-3">
+  <span class="hidden shrink-0 text-sm text-ink-3 sm:inline">Filter by</span>
+  <ul class="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+    <li>
+      <a href={allHref} class="filter-pill" aria-current={active === 'all' ? 'page' : undefined}>All</a>
+    </li>
+    {
+      categories.map((c) => (
+        <li>
+          <a href={`/category/${c.slug}`} class="filter-pill" aria-current={active === c.slug ? 'page' : undefined}>
+            {c.name}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

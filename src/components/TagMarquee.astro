@@ -1,0 +1,37 @@
+---
+/** 많이 쓴 태그가 옆으로 천천히 흐르는 띠 (마우스를 올리면 멈춤, '동작 줄이기' 설정이면 정지) */
+import { countTags } from '../lib/content';
+import type { PostSummary } from '../lib/types';
+
+interface Props {
+  posts: PostSummary[];
+}
+const tags = countTags(Astro.props.posts).slice(0, 14);
+// 화면을 채우도록 최소 개수만큼 반복
+const row = tags.length ? Array.from({ length: Math.max(1, Math.ceil(10 / tags.length)) }, () => tags).flat() : [];
+---
+
+{
+  tags.length > 0 && (
+    <section aria-label="많이 쓴 태그" class="mt-24 overflow-hidden border-y border-line py-6 md:mt-32" data-reveal>
+      <div class="marquee">
+        {[0, 1].map((copy) => (
+          <ul class="flex shrink-0 items-center" aria-hidden={copy === 1 ? 'true' : undefined}>
+            {row.map((t) => (
+              <li class="flex items-center">
+                <a
+                  href={`/tag/${encodeURIComponent(t.name)}`}
+                  tabindex={copy === 1 ? -1 : undefined}
+                  class="px-6 text-[1.75rem] font-bold tracking-[-0.03em] text-ink-3 transition-colors hover:text-ink md:text-[2.5rem]"
+                >
+                  #{t.name}
+                </a>
+                <span class="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
+    </section>
+  )
+}

@@ -10,15 +10,17 @@ interface Props {
   emptyTitle?: string;
   emptyText?: string;
   headingLevel?: 'h2' | 'h3';
+  /** 첫 화면에 바로 보이는 그리드면 true (첫 사진 우선 로딩) */
+  eager?: boolean;
 }
-const { posts, site, emptyTitle = '아직 글이 없어요', emptyText = '곧 맛있는 이야기로 채워질 예정이에요.', headingLevel } = Astro.props;
+const { posts, site, emptyTitle = '아직 글이 없어요', emptyText = '곧 맛있는 이야기로 채워질 예정이에요.', headingLevel, eager } = Astro.props;
 ---
 
 {
   posts.length ? (
-    <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-      {posts.map((p) => (
-        <PostCard post={p} category={site.categoryMap.get(p.category)} headingLevel={headingLevel} />
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:gap-8 lg:grid-cols-3">
+      {posts.map((p, i) => (
+        <PostCard post={p} category={site.categoryMap.get(p.category)} headingLevel={headingLevel} index={i} eager={eager} />
       ))}
     </div>
   ) : (

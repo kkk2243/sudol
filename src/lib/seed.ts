@@ -27,6 +27,33 @@ export const DEFAULT_SETTINGS: Settings = {
   adsenseClient: '',
   adSlots: { top: '', middle: '', bottom: '', sidebar: '' },
   adsTxt: '',
+
+  logoText: '수돌이.log',
+  menuHeader: [
+    { label: '맛집', href: '/category/food' },
+    { label: '일상', href: '/category/daily' },
+    { label: '여행', href: '/category/travel' },
+    { label: '소개', href: '/about' },
+  ],
+  headerCta: { label: '연락하기', href: '/contact' },
+  menuFooter: [
+    { label: '전체 글', href: '/posts' },
+    { label: '맛집', href: '/category/food' },
+    { label: '일상', href: '/category/daily' },
+    { label: '여행', href: '/category/travel' },
+    { label: '소개', href: '/about' },
+    { label: '연락하기', href: '/contact' },
+  ],
+  heroLabel: '수돌이 블로그',
+  heroTitle: '맛있는 한 끼와 가벼운 여행,\n소소한 하루를 기록해요',
+  heroSubtitle: '직접 가보고, 먹어보고, 걸어본 이야기만 씁니다.',
+  bannerEnabled: true,
+  bannerLabel: 'ABOUT 수돌이',
+  bannerTitle: '오늘은 어디서 뭘 먹을까?\n수돌이가 먼저 다녀왔어요',
+  bannerText: '동네 밥집부터 주말 여행까지, 솔직한 후기와 동선 팁을 모아두었어요.',
+  bannerPrimary: { label: '수돌이 소개', href: '/about' },
+  bannerSecondary: { label: '전체 글 보기', href: '/posts' },
+  footerSlogan: '맛있는 한 끼, 소소한 하루,\n가벼운 여행을 기록합니다.',
 };
 
 export const DEFAULT_CATEGORIES: Category[] = [

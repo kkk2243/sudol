@@ -25,42 +25,72 @@ const next = nextRaw.startsWith('/admin') && !nextRaw.startsWith('//') ? nextRaw
       } catch (e) {}
     </script>
   </head>
-  <body class="flex min-h-dvh items-center justify-center bg-bg px-4">
-    <main class="w-full max-w-sm">
+  <body class="flex min-h-dvh items-center justify-center bg-bg px-4 py-10">
+    <main class:list={['w-full', cfgError ? 'max-w-xl' : 'max-w-sm']}>
       <p class="text-center text-4xl" aria-hidden="true">🍙</p>
-      <h1 class="mt-3 text-center text-2xl font-extrabold">관리자 로그인</h1>
+      <h1 class="mt-3 text-center text-2xl font-extrabold">{cfgError ? '관리자 처음 설정하기' : '관리자 로그인'}</h1>
 
       {
-        cfgError && (
-          <div class="card mt-6 border-amber-400 p-4 text-sm leading-relaxed" role="alert">
-            <p class="font-bold">⚠️ 아직 관리자 설정이 끝나지 않았어요</p>
-            <p class="mt-1 text-ink-2">{cfgError}</p>
-            <p class="mt-2 text-ink-3">
-              Netlify → Site configuration → Environment variables 에 ADMIN_ID, ADMIN_PASSWORD_HASH, SESSION_SECRET 을 넣고 다시 배포하세요. (README 참고)
-            </p>
-          </div>
+        cfgError ? (
+          <section id="setup" class="mt-6 space-y-5">
+            <div class="card border-amber-400 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950 dark:bg-amber-950/40 dark:text-amber-100" role="note">
+              <p class="font-bold">아직 관리자 비밀번호가 설정되지 않았어요.</p>
+              <p class="mt-1">아래에서 아이디와 비밀번호를 정하면 Netlify에 넣을 값 3개를 만들어 드려요. 비밀번호는 이 브라우저 안에서만 처리되고 어디에도 전송되지 않아요.</p>
+              <p class="mt-1 text-xs opacity-75">({cfgError})</p>
+            </div>
+
+            <form id="setup-form" class="card space-y-4 p-5" method="post" action="/admin/login" novalidate>
+              <p class="font-bold">① 아이디·비밀번호 정하기</p>
+              <label class="field">
+                <span class="label">관리자 아이디</span>
+                <input class="input" name="sid" value="sudol" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" />
+              </label>
+              <label class="field">
+                <span class="label">비밀번호 (10자 이상)</span>
+                <input class="input" type="password" name="spw" autocomplete="new-password" minlength="10" />
+              </label>
+              <label class="field">
+                <span class="label">비밀번호 한 번 더</span>
+                <input class="input" type="password" name="spw2" autocomplete="new-password" />
+              </label>
+              <p id="setup-error" class="min-h-[1.25rem] text-sm font-semibold text-red-600 dark:text-red-400" role="alert"></p>
+              <button type="submit" class="btn btn-primary w-full" disabled>Netlify에 넣을 값 만들기</button>
+            </form>
+
+            <div id="setup-result" class="card hidden space-y-4 p-5" aria-live="polite">
+              <p class="font-bold">② 아래 3개를 Netlify에 넣기</p>
+              <ol class="list-decimal space-y-1 pl-5 text-sm text-ink-2">
+                <li>app.netlify.com → 이 사이트 → <b>Project configuration → Environment variables</b></li>
+                <li><b>Add a variable → Add a single variable</b> 를 눌러 Key·Value 를 하나씩 3번 넣기</li>
+                <li><b>Deploys → Trigger deploy → Deploy project</b> 로 한 번 다시 배포 (1~2분)</li>
+                <li>이 페이지를 새로고침하면 로그인 화면이 나와요. 정한 아이디·비밀번호로 로그인!</li>
+              </ol>
+              <div class="space-y-3" id="setup-values"></div>
+              <p class="text-xs text-ink-3">비밀번호 원문은 어디에도 붙여넣지 마세요. 이 화면의 값(해시)만 넣으면 돼요. 비밀번호를 잊으면 이 과정을 다시 하면 됩니다.</p>
+            </div>
+          </section>
+        ) : (
+          <form id="login-form" class="card mt-6 space-y-4 p-6" method="post" action="/api/admin/login" data-next={next}>
+            <input type="hidden" name="next" value={next} />
+            <label class="field">
+              <span class="label">아이디</span>
+              <input class="input" name="id" autocomplete="username" required autocapitalize="off" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span class="label">비밀번호</span>
+              <input class="input" type="password" name="password" autocomplete="current-password" required />
+            </label>
+            <p id="login-error" class="min-h-[1.25rem] text-sm font-semibold text-red-600 dark:text-red-400" role="alert">{errorMsg}</p>
+            <button type="submit" class="btn btn-primary w-full">로그인</button>
+          </form>
         )
       }
-
-      <form id="login-form" class="card mt-6 space-y-4 p-6" method="post" action="/api/admin/login" data-next={next}>
-        <input type="hidden" name="next" value={next} />
-        <label class="field">
-          <span class="label">아이디</span>
-          <input class="input" name="id" autocomplete="username" required autocapitalize="off" spellcheck="false" />
-        </label>
-        <label class="field">
-          <span class="label">비밀번호</span>
-          <input class="input" type="password" name="password" autocomplete="current-password" required />
-        </label>
-        <p id="login-error" class="min-h-[1.25rem] text-sm font-semibold text-red-600 dark:text-red-400" role="alert">{errorMsg}</p>
-        <button type="submit" class="btn btn-primary w-full">로그인</button>
-      </form>
       <p class="mt-6 text-center text-sm"><a href="/" class="text-ink-3 hover:underline">← 블로그로 돌아가기</a></p>
     </main>
     <script>
-      const form = document.getElementById('login-form') as HTMLFormElement;
+      const form = document.getElementById('login-form') as HTMLFormElement | null;
       const err = document.getElementById('login-error')!;
-      form.addEventListener('submit', async (e) => {
+      form?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = form.querySelector('button')!;
         const fd = new FormData(form);
@@ -92,6 +122,78 @@ const next = nextRaw.startsWith('/admin') && !nextRaw.startsWith('//') ? nextRaw
         }
         btn.disabled = false;
         btn.textContent = '로그인';
+      });
+
+      // ── 처음 설정: 브라우저 안에서 bcrypt 해시와 세션 키 만들기 ──
+      const setup = document.getElementById('setup-form') as HTMLFormElement | null;
+      // 스크립트가 준비된 뒤에만 버튼 활성화(그 전에 눌러 비밀번호가 전송되는 일 방지)
+      setup?.querySelector('button')?.removeAttribute('disabled');
+      setup?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const serr = document.getElementById('setup-error')!;
+        const id = (setup.elements.namedItem('sid') as HTMLInputElement).value.trim();
+        const pw = (setup.elements.namedItem('spw') as HTMLInputElement).value;
+        const pw2 = (setup.elements.namedItem('spw2') as HTMLInputElement).value;
+        serr.textContent = '';
+        if (!/^[A-Za-z0-9._-]{3,40}$/.test(id)) return void (serr.textContent = '아이디는 영문·숫자 3자 이상으로 정해 주세요.');
+        if (pw.length < 10) return void (serr.textContent = '비밀번호는 10자 이상으로 정해 주세요.');
+        if (pw !== pw2) return void (serr.textContent = '두 비밀번호가 달라요.');
+        const btn = setup.querySelector('button')!;
+        btn.disabled = true;
+        btn.textContent = '만드는 중… (몇 초 걸려요)';
+        try {
+          const { default: bcrypt } = await import('bcryptjs');
+          const hash = await bcrypt.hash(pw, 12);
+          const bytes = crypto.getRandomValues(new Uint8Array(48));
+          const secret = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+          const values: [string, string][] = [
+            ['ADMIN_ID', id],
+            ['ADMIN_PASSWORD_HASH', 'b64:' + btoa(hash)],
+            ['SESSION_SECRET', secret],
+          ];
+          const box = document.getElementById('setup-values')!;
+          box.replaceChildren();
+          for (const [k, v] of values) {
+            const row = document.createElement('div');
+            row.className = 'rounded-xl bg-soft p-3';
+            const top = document.createElement('div');
+            top.className = 'flex items-center justify-between gap-2';
+            const key = document.createElement('code');
+            key.className = 'text-sm font-bold';
+            key.textContent = k;
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'btn btn-sm';
+            copy.textContent = 'Value 복사';
+            const input = document.createElement('input');
+            input.className = 'input mt-2 font-mono text-xs';
+            input.readOnly = true;
+            input.value = v;
+            input.setAttribute('aria-label', `${k} 값`);
+            copy.addEventListener('click', async () => {
+              try {
+                await navigator.clipboard.writeText(v);
+              } catch {
+                input.select();
+                document.execCommand('copy');
+              }
+              copy.textContent = '복사됨 ✓';
+              setTimeout(() => (copy.textContent = 'Value 복사'), 1500);
+            });
+            top.append(key, copy);
+            row.append(top, input);
+            box.append(row);
+          }
+          (setup.elements.namedItem('spw') as HTMLInputElement).value = '';
+          (setup.elements.namedItem('spw2') as HTMLInputElement).value = '';
+          const result = document.getElementById('setup-result')!;
+          result.classList.remove('hidden');
+          result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch {
+          serr.textContent = '값을 만들지 못했어요. 브라우저를 새로고침한 뒤 다시 시도해 주세요.';
+        }
+        btn.disabled = false;
+        btn.textContent = 'Netlify에 넣을 값 만들기';
       });
     </script>
   </body>

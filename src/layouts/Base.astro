@@ -3,15 +3,19 @@ import '../styles/global.css';
 import Seo, { type SeoProps } from '../components/Seo.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import Banner from '../components/Banner.astro';
 import type { SiteData } from '../lib/site';
 import { siteUrl } from '../lib/env';
 
 interface Props {
   site: SiteData;
   seo: Omit<SeoProps, 'siteName'>;
-  activeCategory?: string;
+  /** 헤더 메뉴에서 강조할 주소 (예: 글 상세에서 /category/food) */
+  activePath?: string;
+  /** 아래 어두운 배너 표시 여부 (기본: 설정 따름) */
+  banner?: boolean;
 }
-const { site, seo, activeCategory } = Astro.props;
+const { site, seo, activePath, banner = true } = Astro.props;
 const { settings } = site;
 const adsenseOn = /^ca-pub-\d{10,20}$/.test(settings.adsenseClient);
 const base = siteUrl(Astro.url);
@@ -22,18 +26,25 @@ const base = siteUrl(Astro.url);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#fffcf8" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={settings.title} href={`${base}/rss.xml`} />
     <Seo {...seo} siteName={settings.title} />
     <script is:inline>
       (function () {
+        var d = document.documentElement;
         try {
           var t = localStorage.getItem('theme');
-          var d = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (d) document.documentElement.classList.add('dark');
+          if (t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) d.classList.add('dark');
         } catch (e) {}
+        // 스크롤 등장 효과: 동작 줄이기 설정이 아니면 켜고, 스크립트가 3초 안에 못 뜨면 자동으로 끔(글이 숨겨진 채 남지 않도록)
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          d.classList.add('motion');
+          setTimeout(function () {
+            if (!window.__motionReady) d.classList.remove('motion');
+          }, 3000);
+        }
       })();
     </script>
     {
@@ -46,12 +57,16 @@ const base = siteUrl(Astro.url);
       )
     }
   </head>
-  <body class="min-h-dvh flex flex-col">
+  <body class="flex min-h-dvh flex-col">
     <a href="#main" class="skip-link">본문으로 건너뛰기</a>
-    <Header settings={settings} categories={site.categories} active={activeCategory} />
+    <Header settings={settings} activePath={activePath ?? Astro.url.pathname} />
     <main id="main" class="flex-1">
       <slot />
     </main>
+    {banner && settings.bannerEnabled && <Banner site={site} />}
     <Footer settings={settings} />
+    <script>
+      import '../scripts/motion';
+    </script>
   </body>
 </html>

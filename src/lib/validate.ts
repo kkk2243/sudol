@@ -99,39 +99,96 @@ export function buildCategories(raw: any): Category[] {
   });
 }
 
+/** 메뉴 링크 주소: 사이트 안 경로(/...), https://, mailto: 만 허용 */
+function menuHref(v: unknown, label: string): string {
+  const h = str(v, 300);
+  if (!h) throw new HttpError(400, `'${label}' 메뉴의 링크 주소를 입력해 주세요.`);
+  if (h.startsWith('/') && !h.startsWith('//')) return h;
+  if (/^https?:\/\/[^\s<>"']+$/i.test(h) || /^mailto:[^\s<>"']+$/i.test(h)) return h;
+  throw new HttpError(400, `'${label}' 메뉴 주소는 /로 시작하는 사이트 주소나 https:// 주소만 쓸 수 있어요.`);
+}
+
+function menuItem(v: any, where: string, allowEmpty = false) {
+  const label = str(v?.label, 24);
+  if (!label) {
+    if (allowEmpty) return { label: '', href: '' };
+    throw new HttpError(400, `${where}: 메뉴 이름을 입력해 주세요.`);
+  }
+  return { label, href: menuHref(v?.href, label), ...(v?.newTab ? { newTab: true } : {}) };
+}
+
+function menuList(v: unknown, where: string, max: number) {
+  if (!Array.isArray(v)) throw new HttpError(400, `${where} 형식이 올바르지 않아요.`);
+  if (v.length > max) throw new HttpError(400, `${where}는 ${max}개까지 만들 수 있어요.`);
+  return v.map((x) => menuItem(x, where));
+}
+
+/**
+ * 설정 저장. raw 에 들어 있는 항목만 바꾸고 나머지는 이전 값을 유지합니다.
+ * (블로그 설정 화면과 메뉴·홈 화면 편집 화면이 각자 자기 항목만 보냄)
+ */
 export function buildSettings(raw: any, prev: Settings): Settings {
-  const client = str(raw?.adsenseClient, 40);
-  if (client && !/^ca-pub-\d{10,20}$/.test(client)) throw new HttpError(400, '애드센스 클라이언트 ID는 ca-pub-0000000000000000 형식이에요.');
-  const email = str(raw?.contactEmail, 120);
-  if (email && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(email)) throw new HttpError(400, '이메일 형식이 올바르지 않아요.');
-  const profileImage = str(raw?.profileImage, 500);
-  if (profileImage && !validImageSrc(profileImage)) throw new HttpError(400, '프로필 이미지 주소가 올바르지 않아요.');
-  const slot = (v: unknown) => {
-    const s = str(v, 20);
-    if (s && !/^\d{6,20}$/.test(s)) throw new HttpError(400, '광고 슬롯 ID는 숫자만 입력해요.');
-    return s;
-  };
-  const adsTxt = str(raw?.adsTxt, 5000);
-  if (/[<>]/.test(adsTxt)) throw new HttpError(400, 'ads.txt 내용에 < > 문자는 쓸 수 없어요.');
-  const title = str(raw?.title, 80);
-  if (!title) throw new HttpError(400, '블로그 제목을 입력해 주세요.');
-  return {
-    title,
-    tagline: str(raw?.tagline, 120),
-    description: str(raw?.description, 300),
-    authorName: str(raw?.authorName, 30) || prev.authorName,
-    aboutBody: typeof raw?.aboutBody === 'string' ? raw.aboutBody.slice(0, 20000) : prev.aboutBody,
-    profileImage,
-    contactEmail: email,
-    adsenseClient: client,
-    adSlots: {
-      top: slot(raw?.adSlots?.top),
-      middle: slot(raw?.adSlots?.middle),
-      bottom: slot(raw?.adSlots?.bottom),
-      sidebar: slot(raw?.adSlots?.sidebar),
-    },
-    adsTxt,
-  };
+  const has = (k: string) => raw && Object.prototype.hasOwnProperty.call(raw, k);
+  const s: Settings = { ...prev, adSlots: { ...prev.adSlots } };
+
+  if (has('title')) {
+    s.title = str(raw.title, 80);
+    if (!s.title) throw new HttpError(400, '블로그 제목을 입력해 주세요.');
+  }
+  if (has('tagline')) s.tagline = str(raw.tagline, 120);
+  if (has('description')) s.description = str(raw.description, 300);
+  if (has('authorName')) s.authorName = str(raw.authorName, 30) || prev.authorName;
+  if (has('aboutBody') && typeof raw.aboutBody === 'string') s.aboutBody = raw.aboutBody.slice(0, 20000);
+  if (has('profileImage')) {
+    const v = str(raw.profileImage, 500);
+    if (v && !validImageSrc(v)) throw new HttpError(400, '프로필 이미지 주소가 올바르지 않아요.');
+    s.profileImage = v;
+  }
+  if (has('contactEmail')) {
+    const v = str(raw.contactEmail, 120);
+    if (v && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(v)) throw new HttpError(400, '이메일 형식이 올바르지 않아요.');
+    s.contactEmail = v;
+  }
+  if (has('adsenseClient')) {
+    const v = str(raw.adsenseClient, 40);
+    if (v && !/^ca-pub-\d{10,20}$/.test(v)) throw new HttpError(400, '애드센스 클라이언트 ID는 ca-pub-0000000000000000 형식이에요.');
+    s.adsenseClient = v;
+  }
+  if (has('adSlots')) {
+    const slot = (v: unknown) => {
+      const x = str(v, 20);
+      if (x && !/^\d{6,20}$/.test(x)) throw new HttpError(400, '광고 슬롯 ID는 숫자만 입력해요.');
+      return x;
+    };
+    s.adSlots = {
+      top: slot(raw.adSlots?.top),
+      middle: slot(raw.adSlots?.middle),
+      bottom: slot(raw.adSlots?.bottom),
+      sidebar: slot(raw.adSlots?.sidebar),
+    };
+  }
+  if (has('adsTxt')) {
+    const v = str(raw.adsTxt, 5000);
+    if (/[<>]/.test(v)) throw new HttpError(400, 'ads.txt 내용에 < > 문자는 쓸 수 없어요.');
+    s.adsTxt = v;
+  }
+
+  // 메뉴·화면 구성
+  if (has('logoText')) s.logoText = str(raw.logoText, 30) || prev.logoText;
+  if (has('menuHeader')) s.menuHeader = menuList(raw.menuHeader, '헤더 메뉴', 10);
+  if (has('menuFooter')) s.menuFooter = menuList(raw.menuFooter, '푸터 메뉴', 12);
+  if (has('headerCta')) s.headerCta = menuItem(raw.headerCta, '헤더 버튼', true);
+  if (has('heroLabel')) s.heroLabel = str(raw.heroLabel, 30);
+  if (has('heroTitle')) s.heroTitle = str(raw.heroTitle, 120) || prev.heroTitle;
+  if (has('heroSubtitle')) s.heroSubtitle = str(raw.heroSubtitle, 160);
+  if (has('bannerEnabled')) s.bannerEnabled = raw.bannerEnabled === true;
+  if (has('bannerLabel')) s.bannerLabel = str(raw.bannerLabel, 30);
+  if (has('bannerTitle')) s.bannerTitle = str(raw.bannerTitle, 120);
+  if (has('bannerText')) s.bannerText = str(raw.bannerText, 240);
+  if (has('bannerPrimary')) s.bannerPrimary = menuItem(raw.bannerPrimary, '배너 첫 번째 버튼', true);
+  if (has('bannerSecondary')) s.bannerSecondary = menuItem(raw.bannerSecondary, '배너 두 번째 버튼', true);
+  if (has('footerSlogan')) s.footerSlogan = str(raw.footerSlogan, 160);
+  return s;
 }
 
 /** 가져오기용: 저장 형식 그대로의 글 검증 (id·날짜 유지) */

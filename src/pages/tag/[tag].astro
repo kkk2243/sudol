@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ListHeader from '../../components/ListHeader.astro';
+import CategoryFilter from '../../components/CategoryFilter.astro';
 import PostGrid from '../../components/PostGrid.astro';
 import Pagination from '../../components/Pagination.astro';
 import { paginate, siteData } from '../../lib/site';
@@ -31,9 +32,11 @@ const suffix = pg.page > 1 ? ` (${pg.page}페이지)` : '';
     canonical: pg.page > 1 ? `${basePath}?page=${pg.page}` : basePath,
   }}
 >
-  <ListHeader eyebrow="TAG" title={`#${tag}`} count={list.length} />
-  <div class="container-wide">
-    <PostGrid posts={pg.items} site={site} headingLevel="h2" />
+  <ListHeader eyebrow="태그" title={`#${tag}`} count={list.length}>
+    <CategoryFilter categories={site.categories} />
+  </ListHeader>
+  <div class="wrap">
+    <PostGrid posts={pg.items} site={site} headingLevel="h2" eager={pg.page === 1} />
     <Pagination page={pg.page} total={pg.total} basePath={basePath} />
   </div>
 </Base>
